@@ -1,10 +1,11 @@
-
-# Your discord bot token
+# Your discord bot token, must be filled in.
 token: null
 
-# Id of the server to use, when left null, will choose the first server the bot is in
+# Id of the server to use, when left null, will choose the first server the bot is in.
 server: null
 
-# The name of the discord channel category to use with this plugin
+# The name of the discord channel category to use with this plugin, channels will be created in this category if enabled.
 category: Minecraft Regions
+
+# The name of the Entry channel, this is the name of the channel where players should join to enable the system
 entry-channel-name: Entry

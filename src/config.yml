@@ -1,0 +1,10 @@
+
+# Your discord bot token
+token: null
+
+# Id of the server to use, when left null, will choose the first server the bot is in
+server: null
+
+# The name of the discord channel category to use with this plugin
+category: Minecraft Regions
+entry-channel-name: Entry

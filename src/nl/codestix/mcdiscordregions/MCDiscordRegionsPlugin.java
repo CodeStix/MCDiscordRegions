@@ -1,24 +1,60 @@
 package nl.codestix.mcdiscordregions;
 
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.events.GenericEvent;
+import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.PermissionException;
+import net.dv8tion.jda.api.hooks.EventListener;
 import org.apache.commons.lang.NullArgumentException;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
-import net.raidstone.wgevents.events.*;
 
+import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
 
-public class MCDiscordRegionsPlugin extends JavaPlugin implements Listener {
+public class MCDiscordRegionsPlugin extends JavaPlugin implements EventListener {
 
-    private DiscordBot discord;
+    private RegionEvents regionEvents;
+    private DiscordBot bot;
+    private DiscordPlayerLoader playerLoader;
+
+    private int saveDiscordTagsTaskId;
+
+    public void saveDiscordTags() {
+        getLogger().info("Saving players.yml");
+        try {
+            playerLoader.save();
+        } catch (IOException ex) {
+            getLogger().warning("Could not save players.yml: " + ex);
+        }
+    }
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
+
+        try {
+            playerLoader = new DiscordPlayerLoader(new File(getDataFolder(), "players.yml"));
+        }
+        catch(InvalidConfigurationException ex) {
+            getLogger().warning("Invalid player.yml: " + ex);
+            return;
+        }
+        catch (IOException ex) {
+            getLogger().warning("Could not load player.yml: " + ex);
+            return;
+        }
+
+        final int DISCORD_TAG_SAVE_INTERVAL = 20 * 60 * 2;
+        saveDiscordTagsTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () -> saveDiscordTags(), DISCORD_TAG_SAVE_INTERVAL, DISCORD_TAG_SAVE_INTERVAL);
 
         String token = getConfig().getString("token");
         if (token == null) {
@@ -27,7 +63,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements Listener {
         }
 
         try {
-            discord = new DiscordBot(token);
+            bot = new DiscordBot(token, this);
         }
         catch(InterruptedException ex) {
             getLogger().warning("Login got interrupted: " + ex);
@@ -39,12 +75,12 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements Listener {
 
         String serverId = getConfig().getString("server");
         if (serverId != null) {
-            discord.setGuild(serverId);
+            bot.setGuild(serverId);
         }
         else {
-            Guild firstGuild = discord.getFirstGuild();
+            Guild firstGuild = bot.getFirstGuild();
             if (firstGuild != null) {
-                discord.setGuild(firstGuild);
+                bot.setGuild(firstGuild);
                 getLogger().warning("No discord server configured, please set a server id " +
                         "in the config or use /drg server <id> to set a server. " +
                         "NOTE: Currently using the first server the bot is in: " + firstGuild.getName());
@@ -56,10 +92,10 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements Listener {
         }
 
         String categoryName = getConfig().getString("category");
-        if (categoryName != null && discord.getGuild() != null) {
+        if (categoryName != null && bot.getGuild() != null) {
             getLogger().info(String.format("Setting discord category to '%s'", categoryName));
             try {
-                discord.setCategory(categoryName);
+                bot.setCategory(categoryName);
             }
             catch(PermissionException ex) {
                 getLogger().warning("Could not set category due to permissions: " + ex.getMessage());
@@ -70,45 +106,69 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements Listener {
         }
 
         String entryChannelName = getConfig().getString("entry-channel-name");
-        if (entryChannelName != null && discord.getCategory() != null) {
+        if (entryChannelName != null && bot.getCategory() != null) {
             getLogger().info(String.format("Setting entry voice channel to '%s'", entryChannelName));
             try {
-                discord.setEntryChannel(entryChannelName, false);
+                bot.setEntryChannel(entryChannelName, false);
             }
             catch(PermissionException ex) {
                 getLogger().warning("Could not set entry channel name due to permissions: " + ex.getMessage());
             }
         }
 
-        getCommand("drg").setExecutor(new Commands(this, discord));
-        Bukkit.getPluginManager().registerEvents(this, this);
+        regionEvents = new RegionEvents(bot, playerLoader, false);
+
+        getCommand("drg").setExecutor(new DiscordRegionsCommand(this, bot));
+        Bukkit.getPluginManager().registerEvents(regionEvents, this);
 
         getLogger().info("Is configured correctly!");
     }
 
     @Override
     public void onDisable() {
-        discord.destroy();
+        bot.destroy();
+        Bukkit.getScheduler().cancelTask(saveDiscordTagsTaskId);
+        saveDiscordTags();
         getLogger().info("Is now disabled!");
     }
 
-    @EventHandler
-    public void onRegionEntered(RegionEnteredEvent event)
-    {
-        Player player = event.getPlayer();
-        if (player == null) return;
-
-        String regionName = event.getRegionName();
-        Bukkit.getServer().broadcastMessage(player.getName() + " entered " + regionName);
+    @Override
+    public void onEvent(GenericEvent genericEvent) {
+        if (genericEvent instanceof PrivateMessageReceivedEvent)
+            onPrivateMessageReceived((PrivateMessageReceivedEvent)genericEvent);
     }
 
-    @EventHandler
-    public void onRegionExit(RegionLeftEvent event) {
+    public void onPrivateMessageReceived(PrivateMessageReceivedEvent event) {
+        Message message = event.getMessage();
 
-        Player player = event.getPlayer();
-        if (player == null) return;
+        List<Member> members = bot.getEntryChannel().getMembers();
+        Member member = null;
+        for(Member m : members) {
+            if (m.getUser().getIdLong() == event.getAuthor().getIdLong()) {
+                member = m;
+                break;
+            }
+        }
 
-        String regionName = event.getRegionName();
-        Bukkit.getServer().broadcastMessage(player.getName() + " left " + regionName);
+        if (member == null) {
+            message.addReaction("❓").queue(); // not in entry channel
+            return;
+        }
+
+        String playerName = message.getContentRaw();
+        if (!MojangAPI.isValidName(playerName)) {
+            message.addReaction("❌").queue(); // not a valid name
+            return;
+        }
+
+        UUID playerUUID = MojangAPI.playerNameToUUID(playerName);
+        if (playerUUID == null) {
+            message.addReaction("❌").queue(); // player not found
+            return;
+        }
+
+        regionEvents.registerPlayer(playerUUID, member);
+
+        message.addReaction("✅").queue();
     }
 }

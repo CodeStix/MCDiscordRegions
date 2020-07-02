@@ -2,18 +2,19 @@ package nl.codestix.mcdiscordregions;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.entities.Category;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.hooks.EventListener;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.utils.Compression;
 import org.apache.commons.lang.NullArgumentException;
 
 import javax.security.auth.login.LoginException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Consumer;
 
-public class DiscordBot {
+public class DiscordBot extends ListenerAdapter {
 
     private JDA bot;
 
@@ -22,11 +23,12 @@ public class DiscordBot {
     private Guild guild;
     private VoiceChannel entryChannel;
 
-    public DiscordBot(String token) throws LoginException, InterruptedException
+    public DiscordBot(String token, EventListener... listeners) throws LoginException, InterruptedException
     {
         bot = JDABuilder
                 .createDefault(token)
                 .setCompression(Compression.NONE) // <- compression not working with Bukkit?
+                .addEventListeners(listeners)
                 .build();
         bot.awaitReady();
     }
@@ -47,6 +49,16 @@ public class DiscordBot {
     public Guild getFirstGuild() {
         List<Guild> guilds = bot.getGuilds();
         return guilds.size() <= 0 ? null : guilds.get(0);
+    }
+
+    public void getChannelByNameOrCreate(String name, Consumer<VoiceChannel> callback) {
+        if (channels.containsKey(name))
+            callback.accept(channels.get(name));
+        else
+            category.createVoiceChannel(name).queue(vc -> {
+                updateChannelCache();
+                callback.accept(vc);
+            });
     }
 
     public Category getCategoryByName(String name) {
@@ -96,7 +108,7 @@ public class DiscordBot {
         return guild;
     }
 
-    private void updateChannelCache() {
+    public void updateChannelCache() {
         // Cache the channels by name
         channels.clear();
         for(VoiceChannel channel : category.getVoiceChannels())
@@ -111,15 +123,17 @@ public class DiscordBot {
             entryChannel.getManager().setName(entryChannelName).queue();
         }
         else {
-            if (channels.containsKey(entryChannelName))
+            if (channels.containsKey(entryChannelName)) {
                 entryChannel = channels.get(entryChannelName);
-            else
+                updateChannelCache();
+            }
+            else {
                 category.createVoiceChannel(entryChannelName).queue(c -> {
                     entryChannel = c;
+                    updateChannelCache();
                 });
+            }
         }
-
-        updateChannelCache();
     }
 
     public Category getCategory() {
@@ -137,13 +151,4 @@ public class DiscordBot {
     public void destroy() {
         bot.shutdownNow();
     }
-
-    public void sendMessage(String message) {
-        String id = "719991301994709003";
-        TextChannel channel = bot.getTextChannelById(id);
-
-
-        channel.sendMessage(message).queue();
-    }
-
 }

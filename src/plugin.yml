@@ -9,6 +9,3 @@ commands:
  drg:
    description: Configure the MCDiscordRegions plugin.
    usage: /drg [server <serverId> | message <message> | info | list | entry <channelName> | category <categoryName>]
- discordname:
-   description: Bind your minecraft name to your discord tag.
-   usage: /discordname <name#xxxx>

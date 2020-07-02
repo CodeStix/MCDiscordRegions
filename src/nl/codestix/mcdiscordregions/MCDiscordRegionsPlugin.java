@@ -116,7 +116,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements EventListener 
             }
         }
 
-        regionEvents = new RegionEvents(bot, playerLoader, false);
+        regionEvents = new RegionEvents(this, bot, playerLoader, false);
 
         getCommand("drg").setExecutor(new DiscordRegionsCommand(this, bot));
         Bukkit.getPluginManager().registerEvents(regionEvents, this);

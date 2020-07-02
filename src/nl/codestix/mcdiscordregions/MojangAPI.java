@@ -31,7 +31,7 @@ public class MojangAPI {
             con.setReadTimeout(1000);
             con.setRequestMethod("GET");
 
-            if (con.getResponseCode() >= 300)
+            if (con.getResponseCode() != 200)
                 throw new Exception("Request could not be fulfilled: " + con.getResponseMessage());
 
             JSONObject obj = (JSONObject)new JSONParser().parse(new InputStreamReader(con.getInputStream(), "UTF-8"));

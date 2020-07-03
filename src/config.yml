@@ -7,5 +7,7 @@ server: null
 # The name of the discord channel category to use with this plugin, channels will be created in this category if enabled.
 category: Minecraft Regions
 
-# The name of the Entry channel, this is the name of the channel where players should join to enable the system
+# The name of the Entry channel, this is the name of the channel where players should join to use the system.
 entry-channel-name: Entry
+# The name of the channel the player will be in if it is in the __global__ region.
+global-channel-name: Outside

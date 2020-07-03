@@ -8,79 +8,154 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitScheduler;
 
 import java.util.*;
+import java.util.function.Consumer;
 
-public class RegionEvents implements Listener {
+public class RegionEvents implements Listener, IDiscordPlayerLoader {
 
     private JavaPlugin plugin;
     private DiscordBot bot;
-    private DiscordPlayerLoader playerLoader;
-    private boolean createChannelOnUnknown = true;
-    private boolean useWhitelist;
 
-    public final int MOVE_DELAY_TICKS = 10;
+    public boolean createChannelOnUnknown = true;
+    public boolean useWhitelist = true;
 
-    private HashMap<UUID, Integer> currentPlayerMoveTasks = new HashMap<>();
+    public final int MOVE_DELAY_TICKS = 4; // ~20 ticks per second
+
+    private HashMap<Long, Integer> currentPlayerMoveTasks = new HashMap<>();
     private HashMap<UUID, Member> currentSession = new HashMap<>();
 
-    public void registerPlayer(UUID playerId, Member channelMember) {
-        //long userId = channelMember.getUser().getIdLong();
-        //playerLoader.setDiscordUser(playerId, discordUser.getIdLong());
+    public RegionEvents(JavaPlugin plugin, DiscordBot bot) {
+        this.plugin = plugin;
+        this.bot = bot;
+    }
 
+    public void tryGetVoiceChannelForRegion(String regionName, Consumer<VoiceChannel> callback) {
+        VoiceChannel channel = bot.getChannelByName(regionName);
+        if (channel != null) {
+            callback.accept(channel);
+        }
+        else if (createChannelOnUnknown) {
+            bot.getChannelByNameOrCreate(regionName, callback);
+        }
+        else {
+            Bukkit.getLogger().warning(String.format("Member entered region %s but no voice channel was available.", regionName));
+            callback.accept(null);
+        }
+    }
+
+    public void registerPlayer(UUID playerId, Member channelMember) {
         currentSession.put(playerId, channelMember);
         if (useWhitelist)
             Bukkit.getOfflinePlayer(playerId).setWhitelisted(true);
+
+        Player pl = plugin.getServer().getPlayer(playerId);
+        if (pl != null)
+            moveNow(channelMember, getPlayerRegionName(playerId, null, null));
     }
 
-    public void unregisterPlayer(UUID playerId, Member channelMember) {
-        currentSession.remove(playerId);
+    public UUID getUUIDFromMember(Member channelMember) {
+        for(Map.Entry<UUID, Member> mem : currentSession.entrySet())
+            if (mem.getValue().getIdLong() == channelMember.getIdLong())
+                return mem.getKey();
+        return null;
+    }
+
+    public boolean unregisterPlayer(Member channelMember, boolean async) {
+        return unregisterPlayer(getUUIDFromMember(channelMember), async);
+    }
+
+    public void unregisterAllPlayers() {
+        for(UUID id : currentSession.keySet())
+            unregisterPlayer(id, false);
+    }
+
+    public boolean unregisterPlayer(UUID playerId, boolean async) {
+        if (playerId == null)
+            return false;
+
+        boolean removed = currentSession.remove(playerId) != null;
+
         if (useWhitelist)
             Bukkit.getOfflinePlayer(playerId).setWhitelisted(false);
-    }
 
-    public RegionEvents(JavaPlugin plugin, DiscordBot bot, DiscordPlayerLoader playerLoader, boolean useWhitelist) {
-        this.plugin = plugin;
-        this.useWhitelist = useWhitelist;
-        this.bot = bot;
-        this.playerLoader = playerLoader;
+        Player pl = plugin.getServer().getPlayer(playerId);
+        if (pl != null)
+        {
+            final String KICK_MESSAGE = "Not registered.";
+            if (async)
+                Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> pl.kickPlayer(KICK_MESSAGE));
+            else
+                pl.kickPlayer(KICK_MESSAGE);
+        }
+        return removed;
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        Player pl = event.getPlayer();
+        UUID id = pl.getUniqueId();
+        Member member = currentSession.get(id);
+        if (member == null) {
+            pl.sendMessage(String.format("§eThis server supports Discord Regions, to use this feature, " +
+                    "go to the Discord server of this Minecraft server and join the §f%s§e channel. " +
+                    "Then, send your Minecraft in-game name to a bot named §f%s§e in private.",  bot.getEntryChannel().getName(), bot.getName()));
+        }
+        else {
+            moveNow(member, getPlayerRegionName(id, null, null));
+        }
+    }
 
+    private void moveToEntry(UUID id) {
+        moveToEntry(currentSession.get(id));
+    }
+
+    private void moveToEntry(Member member) {
+        if (member != null && bot.isInVoiceChannel(member))
+            bot.getGuild().moveVoiceMember(member, bot.getEntryChannel()).queue();
+    }
+
+    @EventHandler
+    public void onDeath(PlayerDeathEvent event) {
+        moveToEntry(event.getEntity().getUniqueId());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-
-        UUID id = event.getPlayer().getUniqueId();
-        Member member = currentSession.get(id);
-
-        if (member != null && member.getVoiceState().inVoiceChannel())
-            bot.getGuild().moveVoiceMember(member, bot.getEntryChannel()).queue();
+        moveToEntry(event.getPlayer().getUniqueId());
     }
 
-    private void move(Member member, String regionName) {
-        VoiceChannel channel = bot.getChannelByName(regionName);
-        if (channel == null) {
-            if (createChannelOnUnknown) {
-                bot.getChannelByNameOrCreate(regionName, vc -> {
-                    bot.getGuild().moveVoiceMember(member, vc).queue();
-                    Bukkit.getLogger().info(String.format("Created new voice channel for region '%s'", regionName));
-                });
-            }
-            else {
-                Bukkit.getLogger().warning(String.format("Member %s entered region %s but no voice channel was available.", member.getUser().getName(), regionName));
-            }
-        }
-        else {
-            bot.getGuild().moveVoiceMember(member, channel).queue();
-        }
+    private void moveNow(Member member, String regionName) {
+        tryGetVoiceChannelForRegion(regionName, (vc) -> {
+            if (vc != null)
+                bot.getGuild().moveVoiceMember(member, vc).queue();
+        });
+    }
+
+    private void moveDelayed(Member member, String regionName) {
+        long id = member.getIdLong();
+        if (currentPlayerMoveTasks.containsKey(id))
+            Bukkit.getScheduler().cancelTask(currentPlayerMoveTasks.get(id));
+        currentPlayerMoveTasks.put(id, Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> moveNow(member, regionName), MOVE_DELAY_TICKS));
+    }
+
+    public String getPlayerRegionName(UUID playerId, ProtectedRegion include, ProtectedRegion exclude) {
+        Set<ProtectedRegion> regions = WorldGuardEvents.getRegions(playerId);
+        if (include != null)
+            regions.add(include);
+        if (exclude != null)
+            regions.remove(exclude);
+        ProtectedRegion[] reg = regions.toArray(new ProtectedRegion[0]);
+        Arrays.sort(reg, (o1, o2) -> o1.volume() - o2.volume()); // Sort by region volume
+
+        if (reg.length <= 0)
+            return bot.getGlobalChannel().getName();
+        else
+            return reg[0].getId(); // The first item in the sorted list is the smallest region
     }
 
     @EventHandler
@@ -89,18 +164,10 @@ public class RegionEvents implements Listener {
         UUID id = event.getUUID();
 
         Member member = currentSession.get(id);
-        if (member == null || !member.getVoiceState().inVoiceChannel())
+        if (member == null || !bot.isInVoiceChannel(member))
             return;
 
-        Set<ProtectedRegion> regions = WorldGuardEvents.getRegions(id);
-        regions.add(event.getRegion());
-        ProtectedRegion[] reg = regions.toArray(new ProtectedRegion[0]);
-        Arrays.sort(reg, (o1, o2) -> o1.volume() - o2.volume());
-        ProtectedRegion p = reg[0];
-
-        if (currentPlayerMoveTasks.containsKey(id))
-            Bukkit.getScheduler().cancelTask(currentPlayerMoveTasks.get(id));
-        currentPlayerMoveTasks.put(id, Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> move(member, p.getId()), MOVE_DELAY_TICKS));
+        moveDelayed(member, getPlayerRegionName(id, event.getRegion(), null));
     }
 
     @EventHandler
@@ -109,17 +176,9 @@ public class RegionEvents implements Listener {
         UUID id = event.getUUID();
 
         Member member = currentSession.get(id);
-        if (member == null || !member.getVoiceState().inVoiceChannel())
+        if (member == null || !bot.isInVoiceChannel(member))
             return;
 
-        Set<ProtectedRegion> regions = WorldGuardEvents.getRegions(id);
-        regions.remove(event.getRegion());
-        ProtectedRegion[] reg = regions.toArray(new ProtectedRegion[0]);
-        Arrays.sort(reg, (o1, o2) -> o1.volume() - o2.volume());
-        ProtectedRegion p = reg[0];
-
-        if (currentPlayerMoveTasks.containsKey(id))
-            Bukkit.getScheduler().cancelTask(currentPlayerMoveTasks.get(id));
-        currentPlayerMoveTasks.put(id, Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> move(member, p.getId()), MOVE_DELAY_TICKS));
+        moveDelayed(member, getPlayerRegionName(id, null, event.getRegion()));
     }
 }

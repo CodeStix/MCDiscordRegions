@@ -2,6 +2,7 @@ package nl.codestix.mcdiscordregions;
 
 import net.dv8tion.jda.api.entities.Category;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.exceptions.PermissionException;
 import org.apache.commons.lang.NullArgumentException;
@@ -39,26 +40,40 @@ public class DiscordRegionsCommand implements CommandExecutor
 
         if (strings.length == 1 && strings[0].equalsIgnoreCase("save")) {
             plugin.saveConfig();
-            return true;
-        }
-        else if (strings.length >= 2 && strings[0].equalsIgnoreCase("resolve")) {
-            String name = join(" ", 1, strings);
-            UUID id = MojangAPI.playerNameToUUID(name);
-            if (id != null)
-                commandSender.sendMessage("UUID: " + id.toString());
-            else
-                commandSender.sendMessage("§cCould not resolve");
+            commandSender.sendMessage("Settings were written to config file.");
             return true;
         }
         else if (strings.length == 1 && strings[0].equalsIgnoreCase("info")) {
             Guild guild = bot.getGuild();
             Category category = bot.getCategory();
-            VoiceChannel entry = bot.getEntryChannel();
+            VoiceChannel entryChannel = bot.getEntryChannel();
+            VoiceChannel globalChannel = bot.getGlobalChannel();
 
-            commandSender.sendMessage("Discord information:");
-            commandSender.sendMessage(String.format("Server:        %-20s (%s)", guild == null ? "<not set>" : guild.getName(), guild == null ? "0" : guild.getId()));
-            commandSender.sendMessage(String.format("Category:      %-20s (%s)", category == null ? "<not set>" : category.getName(), category == null ? "0" : category.getId()));
-            commandSender.sendMessage(String.format("Entry Channel: %-20s (%s)", entry == null ? "<not set>" : entry.getName(), entry == null ? "0" : entry.getId()));
+            if (category != null) {
+                Set<Map.Entry<String, VoiceChannel>> channels = bot.getChannels().entrySet();
+                commandSender.sendMessage(String.format("§dList of §f%d§d channels in category §f%s§d:§r", channels.size(), category.getName()));
+                int i = 0;
+                for(Map.Entry<String, VoiceChannel> entry : channels) {
+                    String format;
+                    if (entry.getValue() == entryChannel)
+                        format = "§6#%d:§r %s §a(entry channel)§r";
+                    else if (entry.getValue() == globalChannel)
+                        format = "§6#%d:§r %s §e(global channel)§r";
+                    else
+                        format = "§6#%d:§r %s";
+                    commandSender.sendMessage(String.format(format, ++i, entry.getKey()));
+                }
+
+                commandSender.sendMessage("§dAll members in category:");
+                for(Member mem : bot.getChannelMembers())
+                    commandSender.sendMessage( mem.getEffectiveName());
+            }
+
+            commandSender.sendMessage("§dDiscord information:");
+            commandSender.sendMessage("§6Server:§f " + (guild == null ? "<not set>" : (guild.getName() + "(" + guild.getIdLong() + ")")));
+            commandSender.sendMessage("§6Category:§f " + (category == null ? "<not set>" : (category.getName() + "(" + category.getIdLong() + ")")));
+            commandSender.sendMessage("§6Global channel:§f " + (globalChannel == null ? "<not set>" : (globalChannel.getName() + "(" + globalChannel.getIdLong() + ")")));
+            commandSender.sendMessage("§6Entry channel:§f " + (entryChannel == null ? "<not set>" : (entryChannel.getName() + "(" + entryChannel.getIdLong() + ")")));
             return true;
         }
         else if (strings.length == 2 && strings[0].equalsIgnoreCase("server")) {
@@ -83,14 +98,16 @@ public class DiscordRegionsCommand implements CommandExecutor
             }
             return true;
         }
-        else if(strings.length == 1 && strings[0].equalsIgnoreCase("list")) {
-            Set<Map.Entry<String, VoiceChannel>> channels = bot.getChannels().entrySet();
-            VoiceChannel entryChannel = bot.getEntryChannel();
-            commandSender.sendMessage(String.format("§dList of §f%d§d channels in category §f%s§d:§r", channels.size(), bot.getCategory().getName()));
-
-            int i = 0;
-            for(Map.Entry<String, VoiceChannel> entry : channels)
-                commandSender.sendMessage(String.format("§6#%d:§r %s" + (entry.getValue() == entryChannel ? "§a(entry channel)§r" : ""), ++i, entry.getKey()));
+        else if (strings.length >= 2 && strings[0].equalsIgnoreCase("global")) {
+            String globalChannelName = join(" ", 1, strings);
+            try {
+                bot.setGlobalChannel(globalChannelName, true);
+                commandSender.sendMessage(String.format("Global channel name is now set to '%s'.", globalChannelName));
+            } catch(PermissionException ex) {
+                commandSender.sendMessage("Could not set global channel name due to permissions: " + ex.getMessage());
+            } catch (NullArgumentException ex) {
+                commandSender.sendMessage(ex.getMessage());
+            }
             return true;
         }
         else if (strings.length >= 2 && strings[0].equalsIgnoreCase("entry")) {

@@ -1,7 +1,7 @@
 name: MCDiscordRegions
 description: WorldGuard Discord channel integrations.
-version: 1.15.2
-api-version: 1.15
+version: 0.0.1
+api-version: 1.15.2
 main: nl.codestix.mcdiscordregions.MCDiscordRegionsPlugin
 author: Stijn Rogiest
 depend: [WorldGuard, WorldGuardEvents]

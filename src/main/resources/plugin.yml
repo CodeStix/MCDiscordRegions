@@ -8,4 +8,4 @@ depend: [WorldGuard, WorldGuardEvents]
 commands:
  drg:
    description: Configure the MCDiscordRegions plugin.
-   usage: /drg [info | save | entry <channelName> | global <channelName> | category <categoryName> | server <serverId>]
+   usage: /drg [info | save | autoCreateChannel [on|off] | whitelist [on|off] | entry <channelName> | global <channelName> | category <categoryName> | server <serverId>]

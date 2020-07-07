@@ -16,12 +16,10 @@ import java.util.Set;
 
 public class DiscordRegionsCommand implements CommandExecutor
 {
-    private JavaPlugin plugin;
-    private DiscordBot bot;
+    private MCDiscordRegionsPlugin plugin;
 
-    public DiscordRegionsCommand(JavaPlugin plugin, DiscordBot bot) {
+    public DiscordRegionsCommand(MCDiscordRegionsPlugin plugin) {
         this.plugin = plugin;
-        this.bot = bot;
     }
 
     public String join(String delimiter, int start, String... strings) {
@@ -39,17 +37,17 @@ public class DiscordRegionsCommand implements CommandExecutor
 
         if (strings.length == 1 && strings[0].equalsIgnoreCase("save")) {
             plugin.saveConfig();
-            commandSender.sendMessage("Settings were written to config file.");
+            commandSender.sendMessage("§dSettings were written to config file.");
             return true;
         }
         else if (strings.length == 1 && strings[0].equalsIgnoreCase("info")) {
-            Guild guild = bot.getGuild();
-            Category category = bot.getCategory();
-            VoiceChannel entryChannel = bot.getEntryChannel();
-            VoiceChannel globalChannel = bot.getGlobalChannel();
+            Guild guild = plugin.bot.getGuild();
+            Category category = plugin.bot.getCategory();
+            VoiceChannel entryChannel = plugin.bot.getEntryChannel();
+            VoiceChannel globalChannel = plugin.bot.getGlobalChannel();
 
             if (category != null) {
-                Set<Map.Entry<String, VoiceChannel>> channels = bot.getChannels().entrySet();
+                Set<Map.Entry<String, VoiceChannel>> channels = plugin.bot.getChannels().entrySet();
                 commandSender.sendMessage(String.format("§dList of §f%d§d channels in category §f%s§d:§r", channels.size(), category.getName()));
                 int i = 0;
                 for(Map.Entry<String, VoiceChannel> entry : channels) {
@@ -64,7 +62,7 @@ public class DiscordRegionsCommand implements CommandExecutor
                 }
 
                 commandSender.sendMessage("§dAll members in category:");
-                for(Member mem : bot.getChannelMembers())
+                for(Member mem : plugin.bot.getChannelMembers())
                     commandSender.sendMessage( mem.getEffectiveName());
             }
 
@@ -73,56 +71,75 @@ public class DiscordRegionsCommand implements CommandExecutor
             commandSender.sendMessage("§6Category:§f " + (category == null ? "<not set>" : (category.getName() + "(" + category.getIdLong() + ")")));
             commandSender.sendMessage("§6Global channel:§f " + (globalChannel == null ? "<not set>" : (globalChannel.getName() + "(" + globalChannel.getIdLong() + ")")));
             commandSender.sendMessage("§6Entry channel:§f " + (entryChannel == null ? "<not set>" : (entryChannel.getName() + "(" + entryChannel.getIdLong() + ")")));
+
+            commandSender.sendMessage("§dWhitelist: " + (plugin.regionEvents.getUseWhitelist() ? "§aon" : "§coff"));
+            commandSender.sendMessage("§dAutomatic channel creation: " + (plugin.regionEvents.createChannelOnUnknown ? "§aon" : "§coff"));
+            return true;
+        }
+        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("whitelist")) {
+            if (strings.length == 2) {
+                boolean useWhitelist = strings[1].equalsIgnoreCase("on");
+                plugin.regionEvents.setUseWhitelist(useWhitelist);
+            }
+            commandSender.sendMessage("§dDiscord Regions' whitelist is " + (plugin.regionEvents.getUseWhitelist() ? "§aon" : "§coff"));
+            return true;
+        }
+        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("autoCreateChannel")) {
+            if (strings.length == 2) {
+                boolean autoCreate = strings[1].equalsIgnoreCase("on");
+                plugin.regionEvents.createChannelOnUnknown = autoCreate;
+            }
+            commandSender.sendMessage("§dDiscord automatic channel creation is " + (plugin.regionEvents.createChannelOnUnknown ? "§aon" : "§coff"));
             return true;
         }
         else if (strings.length == 2 && strings[0].equalsIgnoreCase("server")) {
             String serverId = strings[1];
             try {
-                bot.setGuild(serverId);
-                commandSender.sendMessage(String.format("The used server is now '%s' (%s).", bot.getGuild().getName(), serverId));
+                plugin.bot.setGuild(serverId);
+                commandSender.sendMessage(String.format("§dThe used server is now '%s' (%s). Category and channels have been reset, please configure them again.", plugin.bot.getGuild().getName(), serverId));
             } catch (NullArgumentException ex) {
-                commandSender.sendMessage(String.format("The server with id '%s' was not found.", serverId));
+                commandSender.sendMessage(String.format("§cThe server with id '%s' was not found.", serverId));
             }
             return true;
         }
         else if (strings.length >= 2 && strings[0].equalsIgnoreCase("category")) {
             String categoryName = join(" ", 1, strings);
             try {
-                bot.setCategory(categoryName);
-                commandSender.sendMessage(String.format("Category '%s' is now the active category.", categoryName));
+                plugin.bot.setCategory(categoryName);
+                commandSender.sendMessage(String.format("§dCategory '%s' is now the active category.", categoryName));
             } catch(PermissionException ex) {
-                commandSender.sendMessage("Could not set category due to permissions: " + ex.getMessage());
+                commandSender.sendMessage("§cCould not set category due to permissions: " + ex.getMessage());
             } catch (NullArgumentException ex) {
-                commandSender.sendMessage(String.format("The specified category '%s' was not found.", categoryName));
+                commandSender.sendMessage(String.format("§cThe specified category '%s' was not found.", categoryName));
             }
             return true;
         }
         else if (strings.length >= 2 && strings[0].equalsIgnoreCase("global")) {
             String globalChannelName = join(" ", 1, strings);
             try {
-                bot.setGlobalChannel(globalChannelName, true);
-                commandSender.sendMessage(String.format("Global channel name is now set to '%s'.", globalChannelName));
+                plugin.bot.setGlobalChannel(globalChannelName, true);
+                commandSender.sendMessage(String.format("§dGlobal channel name is now set to '%s'.", globalChannelName));
             } catch(PermissionException ex) {
-                commandSender.sendMessage("Could not set global channel name due to permissions: " + ex.getMessage());
+                commandSender.sendMessage("§cCould not set global channel name due to permissions: " + ex.getMessage());
             } catch (NullArgumentException ex) {
-                commandSender.sendMessage(ex.getMessage());
+                commandSender.sendMessage("§c" + ex.getMessage());
             }
             return true;
         }
         else if (strings.length >= 2 && strings[0].equalsIgnoreCase("entry")) {
             String entryChannelName = join(" ", 1, strings);
             try {
-                bot.setEntryChannel(entryChannelName, true);
-                commandSender.sendMessage(String.format("Entry channel name is now set to '%s'.", entryChannelName));
+                plugin.bot.setEntryChannel(entryChannelName, true);
+                commandSender.sendMessage(String.format("§dEntry channel name is now set to '%s'.", entryChannelName));
             } catch(PermissionException ex) {
-                commandSender.sendMessage("Could not set entry channel name due to permissions: " + ex.getMessage());
+                commandSender.sendMessage("§cCould not set entry channel name due to permissions: " + ex.getMessage());
             } catch (NullArgumentException ex) {
-                commandSender.sendMessage(ex.getMessage());
+                commandSender.sendMessage("§c" + ex.getMessage());
             }
             return true;
         }
 
-        commandSender.sendMessage("Unknown arguments. Usage: " + command.getUsage());
+        commandSender.sendMessage("§cUnknown arguments. Usage: " + command.getUsage());
         return true;
     }
 }

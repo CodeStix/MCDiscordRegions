@@ -18,34 +18,42 @@ import java.util.function.Consumer;
 
 public class RegionEvents implements Listener, IDiscordPlayerLoader {
 
-    private JavaPlugin plugin;
-    private DiscordBot bot;
-
-    public boolean createChannelOnUnknown = true;
-    public boolean useWhitelist = true;
-
-    public final int MOVE_DELAY_TICKS = 4; // ~20 ticks per second
-
+    private MCDiscordRegionsPlugin plugin;
+    private boolean useWhitelist = true;
     private HashMap<Long, Integer> currentPlayerMoveTasks = new HashMap<>();
     private HashMap<UUID, Member> currentSession = new HashMap<>();
 
-    public RegionEvents(JavaPlugin plugin, DiscordBot bot) {
+    public boolean createChannelOnUnknown = true;
+    public final int MOVE_DELAY_TICKS = 4; // ~20 ticks per second
+
+    public RegionEvents(MCDiscordRegionsPlugin plugin) {
         this.plugin = plugin;
-        this.bot = bot;
     }
 
     public void tryGetVoiceChannelForRegion(String regionName, Consumer<VoiceChannel> callback) {
-        VoiceChannel channel = bot.getChannelByName(regionName);
+        VoiceChannel channel = plugin.bot.getChannelByName(regionName);
         if (channel != null) {
             callback.accept(channel);
         }
         else if (createChannelOnUnknown) {
-            bot.getChannelByNameOrCreate(regionName, callback);
+            plugin.bot.getChannelByNameOrCreate(regionName, callback);
         }
         else {
-            Bukkit.getLogger().warning(String.format("Member entered region %s but no voice channel was available.", regionName));
+            Bukkit.getLogger().warning(String.format("Member entered region %s but no voice channel was available, auto-create-channels is turned off.", regionName));
             callback.accept(null);
         }
+    }
+
+    public boolean getUseWhitelist() {
+        return useWhitelist;
+    }
+
+    public void setUseWhitelist(boolean useWhitelist) {
+        if (this.useWhitelist && !useWhitelist)
+            for(UUID pl : currentSession.keySet())
+                Bukkit.getOfflinePlayer(pl).setWhitelisted(false);
+
+        this.useWhitelist = useWhitelist;
     }
 
     public void registerPlayer(UUID playerId, Member channelMember) {
@@ -103,7 +111,7 @@ public class RegionEvents implements Listener, IDiscordPlayerLoader {
         if (member == null) {
             pl.sendMessage(String.format("§eThis server supports Discord Regions, to use this feature, " +
                     "go to the Discord server of this Minecraft server and join the §f%s§e channel. " +
-                    "Then, send your Minecraft in-game name to a bot named §f%s§e in private.",  bot.getEntryChannel().getName(), bot.getName()));
+                    "Then, send your Minecraft in-game name to a bot named §f%s§e in private.", plugin.bot.getEntryChannel().getName(), plugin.bot.getName()));
         }
         else {
             moveNow(member, getPlayerRegionName(id, null, null));
@@ -115,8 +123,8 @@ public class RegionEvents implements Listener, IDiscordPlayerLoader {
     }
 
     private void moveToEntry(Member member) {
-        if (member != null && bot.isInVoiceChannel(member))
-            bot.getGuild().moveVoiceMember(member, bot.getEntryChannel()).queue();
+        if (member != null && plugin.bot.isInVoiceChannel(member))
+            plugin.bot.getGuild().moveVoiceMember(member, plugin.bot.getEntryChannel()).queue();
     }
 
     @EventHandler
@@ -132,7 +140,7 @@ public class RegionEvents implements Listener, IDiscordPlayerLoader {
     private void moveNow(Member member, String regionName) {
         tryGetVoiceChannelForRegion(regionName, (vc) -> {
             if (vc != null)
-                bot.getGuild().moveVoiceMember(member, vc).queue();
+                plugin.bot.getGuild().moveVoiceMember(member, vc).queue();
         });
     }
 
@@ -153,7 +161,7 @@ public class RegionEvents implements Listener, IDiscordPlayerLoader {
         Arrays.sort(reg, (o1, o2) -> o1.volume() - o2.volume()); // Sort by region volume
 
         if (reg.length <= 0)
-            return bot.getGlobalChannel().getName();
+            return plugin.bot.getGlobalChannel().getName();
         else
             return reg[0].getId(); // The first item in the sorted list is the smallest region
     }
@@ -164,7 +172,7 @@ public class RegionEvents implements Listener, IDiscordPlayerLoader {
         UUID id = event.getUUID();
 
         Member member = currentSession.get(id);
-        if (member == null || !bot.isInVoiceChannel(member))
+        if (member == null || !plugin.bot.isInVoiceChannel(member))
             return;
 
         moveDelayed(member, getPlayerRegionName(id, event.getRegion(), null));
@@ -176,7 +184,7 @@ public class RegionEvents implements Listener, IDiscordPlayerLoader {
         UUID id = event.getUUID();
 
         Member member = currentSession.get(id);
-        if (member == null || !bot.isInVoiceChannel(member))
+        if (member == null || !plugin.bot.isInVoiceChannel(member))
             return;
 
         moveDelayed(member, getPlayerRegionName(id, null, event.getRegion()));

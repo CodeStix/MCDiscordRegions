@@ -1,13 +1,19 @@
-# Your discord bot token, must be filled in.
-token: null
 
-# Id of the server to use, when left null, will choose the first server the bot is in.
-server: null
+minecraft:
+  # When true, players who register themselves with the bot, will be automatically whitelisted. And when they leave the discord channel, they will be un-whitelisted.
+  # You are forcing players to join the discord server.
+  use-whitelist: false
 
-# The name of the discord channel category to use with this plugin, channels will be created in this category if enabled.
-category: Minecraft Regions
-
-# The name of the Entry channel, this is the name of the channel where players should join to use the system.
-entry-channel-name: Entry
-# The name of the channel the player will be in if it is in the __global__ region.
-global-channel-name: Outside
+discord:
+  # Your discord bot token, must be filled in.
+  token: null
+  # Id of the server to use, when left null, will choose the first server the bot is in.
+  server: null
+  # The name of the discord channel category to use with this plugin, channels will be created in this category if enabled.
+  category: Minecraft Regions
+  # When true, the bot will automatically create a new voice channel when a new WorldGuard region was entered.
+  auto-create-channels: true
+  # The name of the Entry channel, this is the name of the channel where players should join to use the system.
+  entry-channel-name: Entry
+  # The name of the channel the player will be in if it is in the __global__ region.
+  global-channel-name: Outside

@@ -11,20 +11,22 @@ import javax.security.auth.login.LoginException;
 
 public class MCDiscordRegionsPlugin extends JavaPlugin {
 
-    private RegionEvents regionEvents;
-    private DiscordBot bot;
+    public RegionEvents regionEvents;
+    public DiscordBot bot;
 
-    private static final String CONFIG_BOT_TOKEN = "token";
-    private static final String CONFIG_DISCORD_SERVER = "server";
-    private static final String CONFIG_DISCORD_CATEGORY = "category";
-    private static final String CONFIG_DISCORD_ENTRY_CHANNEL = "entry-channel-name";
-    private static final String CONFIG_DISCORD_GLOBAL_CHANNEL = "global-channel-name";
+    private static final String CONFIG_DISCORD_BOT_TOKEN = "discord.token";
+    private static final String CONFIG_DISCORD_SERVER = "discord.server";
+    private static final String CONFIG_DISCORD_CATEGORY = "discord.category";
+    private static final String CONFIG_DISCORD_ENTRY_CHANNEL = "discord.entry-channel-name";
+    private static final String CONFIG_DISCORD_GLOBAL_CHANNEL = "discord.global-channel-name";
+    private static final String CONFIG_DISCORD_AUTO_CREATE_CHANNELS = "discord.auto-create-channels";
+    private static final String CONFIG_MINECRAFT_USE_WHITELIST = "minecraft.use-whitelist";
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
 
-        String token = getConfig().getString(CONFIG_BOT_TOKEN);
+        String token = getConfig().getString(CONFIG_DISCORD_BOT_TOKEN);
         if (token == null) {
             getLogger().warning("Please enter your bot client secret in the config file of this plugin!");
             getPluginLoader().disablePlugin(this);
@@ -97,9 +99,11 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             }
         }
 
-        getCommand("drg").setExecutor(new DiscordRegionsCommand(this, bot));
+        getCommand("drg").setExecutor(new DiscordRegionsCommand(this));
 
-        regionEvents = new RegionEvents(this, bot);
+        regionEvents = new RegionEvents(this);
+        regionEvents.setUseWhitelist(getConfig().getBoolean(CONFIG_MINECRAFT_USE_WHITELIST, false));
+        regionEvents.createChannelOnUnknown = getConfig().getBoolean(CONFIG_DISCORD_AUTO_CREATE_CHANNELS, true);
         bot.setPlayerLoader(regionEvents);
         Bukkit.getPluginManager().registerEvents(regionEvents, this);
 
@@ -110,7 +114,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     public void onDisable() {
         if (bot != null)
             bot.destroy();
-        if (regionEvents != null && regionEvents.useWhitelist)
+        if (regionEvents != null && regionEvents.getUseWhitelist())
             regionEvents.unregisterAllPlayers();
         getLogger().info("Is now disabled!");
     }
@@ -122,6 +126,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         c.set(CONFIG_DISCORD_CATEGORY, bot.getCategory().getName());
         c.set(CONFIG_DISCORD_ENTRY_CHANNEL, bot.getEntryChannel().getName());
         c.set(CONFIG_DISCORD_GLOBAL_CHANNEL, bot.getGlobalChannel().getName());
+        c.set(CONFIG_DISCORD_AUTO_CREATE_CHANNELS, regionEvents.createChannelOnUnknown);
+        c.set(CONFIG_MINECRAFT_USE_WHITELIST, regionEvents.getUseWhitelist());
         super.saveConfig();
     }
 }

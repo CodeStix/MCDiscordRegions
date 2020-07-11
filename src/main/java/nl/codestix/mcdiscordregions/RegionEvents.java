@@ -11,12 +11,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
 import java.util.function.Consumer;
 
-public class RegionEvents implements Listener, IDiscordPlayerLoader {
+public class RegionEvents implements Listener, IDiscordPlayerEvents {
 
     private MCDiscordRegionsPlugin plugin;
     private boolean useWhitelist = true;
@@ -56,7 +55,8 @@ public class RegionEvents implements Listener, IDiscordPlayerLoader {
         this.useWhitelist = useWhitelist;
     }
 
-    public void registerPlayer(UUID playerId, Member channelMember) {
+    @Override
+    public void onDiscordPlayerJoin(UUID playerId, Member channelMember) {
         currentSession.put(playerId, channelMember);
         if (useWhitelist)
             Bukkit.getOfflinePlayer(playerId).setWhitelisted(true);
@@ -66,6 +66,11 @@ public class RegionEvents implements Listener, IDiscordPlayerLoader {
             moveNow(channelMember, getPlayerRegionName(playerId, null, null));
     }
 
+    @Override
+    public boolean onDiscordPlayerLeave(Member channelMember) {
+        return unregisterPlayer(getUUIDFromMember(channelMember));
+    }
+
     public UUID getUUIDFromMember(Member channelMember) {
         for(Map.Entry<UUID, Member> mem : currentSession.entrySet())
             if (mem.getValue().getIdLong() == channelMember.getIdLong())
@@ -73,16 +78,12 @@ public class RegionEvents implements Listener, IDiscordPlayerLoader {
         return null;
     }
 
-    public boolean unregisterPlayer(Member channelMember, boolean async) {
-        return unregisterPlayer(getUUIDFromMember(channelMember), async);
-    }
-
     public void unregisterAllPlayers() {
         for(UUID id : currentSession.keySet())
-            unregisterPlayer(id, false);
+            unregisterPlayer(id);
     }
 
-    public boolean unregisterPlayer(UUID playerId, boolean async) {
+    public boolean unregisterPlayer(UUID playerId) {
         if (playerId == null)
             return false;
 
@@ -95,16 +96,17 @@ public class RegionEvents implements Listener, IDiscordPlayerLoader {
         if (pl != null)
         {
             final String KICK_MESSAGE = "Not registered.";
-            if (async)
-                Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> pl.kickPlayer(KICK_MESSAGE));
-            else
+            if (Bukkit.isPrimaryThread())
                 pl.kickPlayer(KICK_MESSAGE);
+            else
+                Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> pl.kickPlayer(KICK_MESSAGE));
         }
         return removed;
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+
         Player pl = event.getPlayer();
         UUID id = pl.getUniqueId();
         Member member = currentSession.get(id);

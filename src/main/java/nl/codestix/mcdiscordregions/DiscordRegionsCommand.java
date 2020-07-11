@@ -9,7 +9,6 @@ import org.apache.commons.lang.NullArgumentException;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Map;
 import java.util.Set;
@@ -62,7 +61,7 @@ public class DiscordRegionsCommand implements CommandExecutor
                 }
 
                 commandSender.sendMessage("§dAll members in category:");
-                for(Member mem : plugin.bot.getChannelMembers())
+                for(Member mem : plugin.bot.getCategoryMembers())
                     commandSender.sendMessage( mem.getEffectiveName());
             }
 
@@ -136,6 +135,11 @@ public class DiscordRegionsCommand implements CommandExecutor
             } catch (NullArgumentException ex) {
                 commandSender.sendMessage("§c" + ex.getMessage());
             }
+            return true;
+        }
+        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("db")) {
+            commandSender.sendMessage(String.format("§dThere are §f%d/%d§d registered Discord players in the database. ", plugin.playerDatabase.getPlayerCount(), plugin.playerDatabase.maxPlayers));
+            commandSender.sendMessage("§dAccepting new players? " + (plugin.playerDatabase.acceptNewPlayers ? "§ayes" : "§cno"));
             return true;
         }
 

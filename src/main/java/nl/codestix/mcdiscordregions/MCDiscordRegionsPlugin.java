@@ -4,13 +4,17 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.exceptions.PermissionException;
 import org.apache.commons.lang.NullArgumentException;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.security.auth.login.LoginException;
+import java.io.File;
+import java.io.IOException;
 
 public class MCDiscordRegionsPlugin extends JavaPlugin {
 
+    public ConfigDiscordPlayerDatabase playerDatabase;
     public RegionEvents regionEvents;
     public DiscordBot bot;
 
@@ -26,6 +30,14 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
 
+        try {
+            playerDatabase = new ConfigDiscordPlayerDatabase(new File(getDataFolder(), "players.yml"));
+        }
+        catch(IOException | InvalidConfigurationException ex) {
+            getLogger().warning("Could not load players.yml, please ensure correct yml format or delete the file to recreate it.");
+            return;
+        }
+
         String token = getConfig().getString(CONFIG_DISCORD_BOT_TOKEN);
         if (token == null) {
             getLogger().warning("Please enter your bot client secret in the config file of this plugin!");
@@ -34,7 +46,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         }
 
         try {
-            bot = new DiscordBot(token);
+            bot = new DiscordBot(token, playerDatabase);
         }
         catch(InterruptedException ex) {
             getLogger().warning("Login got interrupted: " + ex);
@@ -104,7 +116,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         regionEvents = new RegionEvents(this);
         regionEvents.setUseWhitelist(getConfig().getBoolean(CONFIG_MINECRAFT_USE_WHITELIST, false));
         regionEvents.createChannelOnUnknown = getConfig().getBoolean(CONFIG_DISCORD_AUTO_CREATE_CHANNELS, true);
-        bot.setPlayerLoader(regionEvents);
+        bot.setDiscordPlayerEventsListener(regionEvents);
         Bukkit.getPluginManager().registerEvents(regionEvents, this);
 
         getLogger().info("Is configured correctly!");
@@ -116,6 +128,13 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             bot.destroy();
         if (regionEvents != null && regionEvents.getUseWhitelist())
             regionEvents.unregisterAllPlayers();
+        if (playerDatabase != null) {
+            try {
+                playerDatabase.save();
+            } catch (IOException ex) {
+                getLogger().warning("Could not save players.yml: " + ex);
+            }
+        }
         getLogger().info("Is now disabled!");
     }
 

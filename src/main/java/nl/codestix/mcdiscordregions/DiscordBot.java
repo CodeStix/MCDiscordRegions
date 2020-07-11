@@ -11,7 +11,6 @@ import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
 import net.dv8tion.jda.api.utils.Compression;
 import org.apache.commons.lang.NullArgumentException;
-import org.bukkit.Bukkit;
 
 import javax.security.auth.login.LoginException;
 import java.util.Collection;
@@ -26,14 +25,17 @@ public class DiscordBot implements EventListener {
 
     private Category category;
     private HashMap<String, VoiceChannel> channels = new HashMap<>();
-    private HashMap<Long, Member> channelMembers = new HashMap<>();
+    private HashMap<Long, Member> categoryMembers = new HashMap<>();
     private Guild guild;
     private VoiceChannel entryChannel;
     private VoiceChannel globalChannel;
-    private IDiscordPlayerLoader playerLoader;
+    private IDiscordPlayerEvents discordPlayerListener;
+    private IDiscordPlayerDatabase playerDatabase;
 
-    public DiscordBot(String token) throws LoginException, InterruptedException
+    public DiscordBot(String token, IDiscordPlayerDatabase playerDatabase) throws LoginException, InterruptedException
     {
+        this.playerDatabase = playerDatabase;
+
         bot = JDABuilder
                 .createDefault(token)
                 .setCompression(Compression.NONE) // <- compression not working with Bukkit?
@@ -42,8 +44,8 @@ public class DiscordBot implements EventListener {
         bot.awaitReady();
     }
 
-    public void setPlayerLoader(IDiscordPlayerLoader playerLoader) {
-        this.playerLoader = playerLoader;
+    public void setDiscordPlayerEventsListener(IDiscordPlayerEvents listener) {
+        discordPlayerListener = listener;
     }
 
     public void setGuild(String guildId) {
@@ -55,7 +57,7 @@ public class DiscordBot implements EventListener {
             throw new NullArgumentException("Guild is null.");
         this.category = null;
         this.entryChannel = null;
-        this.channelMembers.clear();
+        this.categoryMembers.clear();
         this.channels.clear();
         this.guild = guild;
     }
@@ -91,8 +93,8 @@ public class DiscordBot implements EventListener {
         return channels.get(name);
     }
 
-    public Collection<Member> getChannelMembers() {
-        return channelMembers.values();
+    public Collection<Member> getCategoryMembers() {
+        return categoryMembers.values();
     }
 
     public VoiceChannel getGlobalChannel() {
@@ -158,13 +160,13 @@ public class DiscordBot implements EventListener {
             channels.put(channel.getName(), channel);
 
         // Cache the members by user id
-        channelMembers.clear();
+        categoryMembers.clear();
         for(Member member : category.getMembers())
-            channelMembers.put(member.getUser().getIdLong(), member);
+            categoryMembers.put(member.getUser().getIdLong(), member);
     }
 
     public boolean isInVoiceChannel(Member member) {
-        return channelMembers.containsKey(member.getUser().getIdLong());
+        return categoryMembers.containsKey(member.getUser().getIdLong());
     }
 
     public void setEntryChannel(String entryChannelName, boolean allowRenamePrevious) {
@@ -205,6 +207,10 @@ public class DiscordBot implements EventListener {
         bot.shutdownNow();
     }
 
+    public Member getMember(long userId) {
+        return categoryMembers.get(userId);
+    }
+
     @Override
     public void onEvent(GenericEvent genericEvent) {
 //        Bukkit.getLogger().info("Event: " + genericEvent.getClass().getName());
@@ -218,38 +224,49 @@ public class DiscordBot implements EventListener {
             onMemberVoiceMove((GuildVoiceMoveEvent)genericEvent);
     }
 
+    private void memberJoinCategory(Member mem) {
+        categoryMembers.put(mem.getUser().getIdLong(), mem);
+        UUID player = playerDatabase.getPlayer(mem.getUser().getIdLong());
+        if (player != null)
+            discordPlayerListener.onDiscordPlayerJoin(player, mem);
+        // else: needs to register themselves with the Discord bot in private.
+    }
+
+    private void memberLeaveCategory(Member mem) {
+        categoryMembers.remove(mem.getUser().getIdLong());
+        discordPlayerListener.onDiscordPlayerLeave(mem); // async because on bot thread
+    }
+
     private void onMemberVoiceJoin(GuildVoiceJoinEvent event) {
-        Member mem = event.getMember();
-        channelMembers.put(mem.getUser().getIdLong(), mem);
+        if (event.getChannelJoined().getParent().getIdLong() == category.getIdLong()) { // if joining mc category
+            memberJoinCategory(event.getMember());
+        }
     }
 
     private void onMemberVoiceLeave(GuildVoiceLeaveEvent event) {
-        Member mem = event.getMember();
-        channelMembers.remove(mem.getUser().getIdLong());
-        playerLoader.unregisterPlayer(mem, true); // async because on bot thread
+        if (event.getChannelLeft().getParent().getIdLong() == category.getIdLong()) {
+            memberLeaveCategory(event.getMember());
+        }
     }
 
     private void onMemberVoiceMove(GuildVoiceMoveEvent event) {
-        Member mem = event.getMember();
-        long id = mem.getUser().getIdLong();
-        if (channelMembers.containsKey(id)) {
-            if (event.getChannelJoined().getParent().getIdLong() != category.getIdLong()) { // if moved outside of MCDiscordRegions category
-                channelMembers.remove(id);
-                playerLoader.unregisterPlayer(mem, true); // async because on bot thread
-            }
+        if (event.getChannelLeft().getParent().getIdLong() != category.getIdLong()
+         && event.getChannelJoined().getParent().getIdLong() == category.getIdLong()) { // if moved inside mc category
+            memberJoinCategory(event.getMember());
+
         }
-        else {
-            Bukkit.getLogger().warning("Unregistered member got moved into a regions channel, but could not be registered. The user should enter the Entry channel and send their name to the bot in private.");
-            /*if (event.getChannelJoined().getParent().getIdLong() != category.getIdLong()) { // if moved inside of MCDiscordRegions category
-                channelMembers.remove(id);
-                playerLoader.unregisterPlayer(mem);
-            }*/
+        else if (event.getChannelLeft().getParent().getIdLong() == category.getIdLong()
+            && event.getChannelJoined().getParent().getIdLong() != category.getIdLong()) { // if moved outside of mc category
+            Member mem = event.getMember();
+            memberLeaveCategory(event.getMember());
         }
+
+        // Bukkit.getLogger().warning("Unregistered member got moved into a regions channel, but could not be registered. The user should enter the Entry channel and send their name to the bot in private.");
     }
 
     private void onPrivateMessageReceived(PrivateMessageReceivedEvent event) {
         Message message = event.getMessage();
-        Member member = channelMembers.get(event.getAuthor().getIdLong());
+        Member member = categoryMembers.get(event.getAuthor().getIdLong());
 
         if (member == null)
             return;
@@ -274,7 +291,12 @@ public class DiscordBot implements EventListener {
             return;
         }
 
-        playerLoader.registerPlayer(playerUUID, member);
+        if (!playerDatabase.putPlayer(member.getUser().getIdLong(), playerUUID)) {
+            message.addReaction("❌").queue();
+            return;
+        }
+
+        discordPlayerListener.onDiscordPlayerJoin(playerUUID, member);
 
         message.addReaction("✅").queue();
     }

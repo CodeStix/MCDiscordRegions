@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 public class RegionEvents implements Listener, IDiscordPlayerEvents {
 
     private MCDiscordRegionsPlugin plugin;
-    private boolean useWhitelist = true;
+    private boolean useWhitelist = false;
     private HashMap<Long, Integer> currentPlayerMoveTasks = new HashMap<>();
     private HashMap<UUID, Member> currentSession = new HashMap<>();
 

@@ -76,7 +76,7 @@ public class DiscordRegionsCommand implements CommandExecutor
             return true;
         }
         else if (strings.length >= 1 && strings[0].equalsIgnoreCase("whitelist")) {
-            if (strings.length == 2) {
+            if (strings.length >= 2) {
                 boolean useWhitelist = strings[1].equalsIgnoreCase("on");
                 plugin.regionEvents.setUseWhitelist(useWhitelist);
             }
@@ -84,11 +84,22 @@ public class DiscordRegionsCommand implements CommandExecutor
             return true;
         }
         else if (strings.length >= 1 && strings[0].equalsIgnoreCase("autoCreateChannel")) {
-            if (strings.length == 2) {
-                boolean autoCreate = strings[1].equalsIgnoreCase("on");
-                plugin.bot.allowCreateNewChannel = autoCreate;
+            if (strings.length >= 2) {
+                plugin.bot.allowCreateNewChannel = strings[1].equalsIgnoreCase("on");
             }
             commandSender.sendMessage("§dDiscord automatic channel creation is " + (plugin.bot.allowCreateNewChannel ? "§aon" : "§coff"));
+            return true;
+        }
+        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("kickOnDiscordLeave")) {
+            if (strings.length >= 2) {
+                plugin.regionEvents.kickOnDiscordLeave = strings[1].equalsIgnoreCase("on");
+            }
+            commandSender.sendMessage("§dKick on discord leave is " + (plugin.regionEvents.kickOnDiscordLeave ? "§aon" : "§coff"));
+
+            if (strings.length >= 3) {
+                plugin.regionEvents.kickOnDiscordLeaveMessage = join(" ", 2, strings);
+            }
+            commandSender.sendMessage("§dKick on discord leave message is: §f" + plugin.regionEvents.kickOnDiscordLeaveMessage);
             return true;
         }
         else if (strings.length >= 2 && strings[0].equalsIgnoreCase("category")) {

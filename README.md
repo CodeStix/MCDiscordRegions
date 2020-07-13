@@ -24,22 +24,20 @@ This bukkit plugin allows you to connect your minecraft server to Discord. By en
 
 ⚠️ There are a lot of missing configuration features at this moment.
 
-`/drg [info | save | entry <channelName> | global <channelName> | category <categoryName> | server <serverId>]`
+`/dregion [info | save | autoCreateChannel [on|off] | whitelist [on|off] | entry <channelName> | global <channelName> | category <categoryName>]`
+or `/drg ...`
 
 -   `info`: display various information about the plugin.
--   `save`: save the current settings to the default config file.
+-   `save`: save the current settings to the config file.
 -   `entry <channelName>`: set the Discord entry channel, this is the channel every user must join to enter the server. When joined, the user must send his minecraft in-game name to the Discord bot **in private**.
 -   `global <channelName>`: set the Discord global channel, this is the channel users will be placed in when they are in no defined region. (The global region)
 -   `category <categoryName>`: this is to create/set the Discord category the bot will create channels in.
--   `server <serverId>`: forcefully set the Discord server id (or guild id) to use with this plugin, when your bot is in multiple discord servers (for some reason, should not be the case). Normally, the server will be recognized automaticly.
+-   `autoCreateChannel [on|off]`: when on, the plugin will automatically create new Discord channels when a new WorldGuard region is entered.
+-   `whitelist [on|off]`: when on, players who enter the _entry_ Discord channel will be added to the whitelist, and removed when they disconnect.
 
 ## Discord channel permissions
 
 Currently, you will have to set discord category and channel permissions yourself, it is recommended to **deny** join rights on the category and override the entry channel to **allow** it. Also, **deny** speaking rights on the entry channel.
-
-## Whitelist
-
-When the whitelist is enabled, players who register themselves with the bot will be whitelisted by the server and unwhitelisted when they leave the discord channel.
 
 ## Building
 

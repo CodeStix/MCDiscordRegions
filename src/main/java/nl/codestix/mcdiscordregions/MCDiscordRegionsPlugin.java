@@ -47,8 +47,12 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             return;
         }
 
+        String guildId = getConfig().getString(CONFIG_DISCORD_SERVER);
         try {
-            bot = new DiscordBot(token, playerDatabase);
+            bot = new DiscordBot(token, guildId, playerDatabase);
+        }
+        catch(NullPointerException ex) {
+            getLogger().warning("No discord server was found, first, invite the bot to a server, then use this plugin.");
         }
         catch(InterruptedException ex) {
             getLogger().warning("Login got interrupted: " + ex);
@@ -59,69 +63,36 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             return;
         }
 
-        String serverId = getConfig().getString(CONFIG_DISCORD_SERVER);
-        if (serverId != null) {
-            bot.setGuild(serverId);
-        }
-        else {
-            Guild firstGuild = bot.getFirstGuild();
-            if (firstGuild != null) {
-                bot.setGuild(firstGuild);
-                getLogger().warning("No discord server configured, please set a server id " +
-                        "in the config or use /drg server <id> to set a server. " +
-                        "NOTE: Currently using the first server the bot is in: " + firstGuild.getName());
-            }
-            else {
-                getLogger().warning("No discord server configured, please set a server id " +
-                        "in the config or use /drg server <id> to set a server.");
-            }
-        }
-
-        String categoryName = getConfig().getString(CONFIG_DISCORD_CATEGORY);
-        if (categoryName != null && bot.getGuild() != null) {
-            getLogger().info(String.format("Setting discord category to '%s'", categoryName));
-            try {
-                bot.setCategory(categoryName);
-            }
-            catch(PermissionException ex) {
-                getLogger().warning("Could not set category due to permissions: " + ex.getMessage());
-            }
-            catch(NullArgumentException ex) {
-                getLogger().warning(String.format("The configured category '%s' was not found.", categoryName));
-            }
-        }
-
-        String entryChannelName = getConfig().getString(CONFIG_DISCORD_ENTRY_CHANNEL);
-        if (entryChannelName != null && bot.getCategory() != null) {
-            getLogger().info(String.format("Setting entry voice channel to '%s'", entryChannelName));
-            try {
-                bot.setEntryChannel(entryChannelName, false);
-            }
-            catch(PermissionException ex) {
-                getLogger().warning("Could not set entry channel name due to permissions: " + ex.getMessage());
-            }
-        }
-
-        String globalChannelName = getConfig().getString(CONFIG_DISCORD_GLOBAL_CHANNEL);
-        if (globalChannelName != null && bot.getCategory() != null) {
-            getLogger().info(String.format("Setting global voice channel to '%s'", globalChannelName));
-            try {
-                bot.setGlobalChannel(globalChannelName, false);
-            }
-            catch(PermissionException ex) {
-                getLogger().warning("Could not set global channel name due to permissions: " + ex.getMessage());
-            }
-        }
-
-        getCommand("dregion").setExecutor(new DiscordRegionsCommand(this));
+        bot.allowCreateNewChannel = getConfig().getBoolean(CONFIG_DISCORD_AUTO_CREATE_CHANNELS, true);
 
         regionEvents = new RegionEvents(this);
         regionEvents.setUseWhitelist(getConfig().getBoolean(CONFIG_MINECRAFT_USE_WHITELIST, false));
-        regionEvents.createChannelOnUnknown = getConfig().getBoolean(CONFIG_DISCORD_AUTO_CREATE_CHANNELS, true);
         regionEvents.kickOnDiscordLeave = getConfig().getBoolean(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, true);
         regionEvents.kickOnDiscordLeaveMessage = getConfig().getString(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE, "Not registered.");
         bot.setDiscordPlayerEventsListener(regionEvents);
         Bukkit.getPluginManager().registerEvents(regionEvents, this);
+
+        String categoryName = getConfig().getString(CONFIG_DISCORD_CATEGORY);
+        if (bot.getGuild() != null && categoryName != null) {
+            getLogger().info(String.format("Setting discord category to '%s'", categoryName));
+            bot.getCategoryByNameOrCreate(categoryName, category -> {
+                bot.setCategory(category);
+
+                String entryChannelName = getConfig().getString(CONFIG_DISCORD_ENTRY_CHANNEL);
+                if (entryChannelName != null) {
+                    getLogger().info(String.format("Setting entry voice channel to '%s'", entryChannelName));
+                    bot.setEntryChannel(entryChannelName, false);
+                }
+
+                String globalChannelName = getConfig().getString(CONFIG_DISCORD_GLOBAL_CHANNEL);
+                if (globalChannelName != null) {
+                    getLogger().info(String.format("Setting global voice channel to '%s'", globalChannelName));
+                    bot.setGlobalChannel(globalChannelName, false);
+                }
+            });
+        }
+
+        getCommand("dregion").setExecutor(new DiscordRegionsCommand(this));
 
         getLogger().info("Is configured correctly!");
     }
@@ -140,7 +111,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
                 getLogger().warning("Could not save players.yml: " + ex);
             }
         }
-        getLogger().info("Is now disabled!");
     }
 
     @Override
@@ -150,7 +120,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         c.set(CONFIG_DISCORD_CATEGORY, bot.getCategory().getName());
         c.set(CONFIG_DISCORD_ENTRY_CHANNEL, bot.getEntryChannel().getName());
         c.set(CONFIG_DISCORD_GLOBAL_CHANNEL, bot.getGlobalChannel().getName());
-        c.set(CONFIG_DISCORD_AUTO_CREATE_CHANNELS, regionEvents.createChannelOnUnknown);
+        c.set(CONFIG_DISCORD_AUTO_CREATE_CHANNELS, bot.allowCreateNewChannel);
         c.set(CONFIG_MINECRAFT_USE_WHITELIST, regionEvents.getUseWhitelist());
         c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, regionEvents.kickOnDiscordLeave);
         c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE, regionEvents.kickOnDiscordLeaveMessage);

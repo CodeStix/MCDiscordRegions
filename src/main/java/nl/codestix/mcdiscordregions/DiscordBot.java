@@ -32,7 +32,9 @@ public class DiscordBot implements EventListener {
     private IDiscordPlayerEvents discordPlayerListener;
     private IDiscordPlayerDatabase playerDatabase;
 
-    public DiscordBot(String token, IDiscordPlayerDatabase playerDatabase) throws LoginException, InterruptedException
+    public boolean allowCreateNewChannel = true;
+
+    public DiscordBot(String token, String guildId, IDiscordPlayerDatabase playerDatabase) throws LoginException, InterruptedException
     {
         this.playerDatabase = playerDatabase;
 
@@ -42,13 +44,24 @@ public class DiscordBot implements EventListener {
                 .addEventListeners(this)
                 .build();
         bot.awaitReady();
+
+        if (guildId == null) {
+            List<Guild> guilds = bot.getGuilds();
+            guild = guilds.size() <= 0 ? null : guilds.get(0);
+        }
+        else {
+            guild = bot.getGuildById(guildId);
+        }
+
+        if (guild == null)
+            throw new NullPointerException("No guild was found.");
     }
 
     public void setDiscordPlayerEventsListener(IDiscordPlayerEvents listener) {
         discordPlayerListener = listener;
     }
 
-    public void setGuild(String guildId) {
+    /*public void setGuild(String guildId) {
         setGuild(bot.getGuildById(guildId));
     }
 
@@ -65,21 +78,37 @@ public class DiscordBot implements EventListener {
     public Guild getFirstGuild() {
         List<Guild> guilds = bot.getGuilds();
         return guilds.size() <= 0 ? null : guilds.get(0);
+    }*/
+
+    public Guild getGuild() {
+        return guild;
+    }
+
+    public void getCategoryByNameOrCreate(String name, Consumer<Category> callback) {
+        Category category = getCategoryByName(name);
+        if (category == null)
+            guild.createCategory(name).queue(c ->  {
+                callback.accept(c);
+            });
+        else
+            callback.accept(category);
     }
 
     public void getChannelByNameOrCreate(String name, Consumer<VoiceChannel> callback) {
+        if (category == null)
+            throw new NullArgumentException("Category is null, this must be set first using setCategory.");
         if (channels.containsKey(name))
             callback.accept(channels.get(name));
-        else
+        else if (allowCreateNewChannel)
             category.createVoiceChannel(name).queue(vc -> {
                 updateChannelCache();
                 callback.accept(vc);
             });
+        else
+            callback.accept(null);
     }
 
     public Category getCategoryByName(String name) {
-        if (guild == null)
-            throw new NullArgumentException("No server selected, select a server first using setGuild.");
         List<Category> categories = guild.getCategories();
         for(int i = 0; i < categories.size(); i++) {
             Category c = categories.get(i);
@@ -122,23 +151,7 @@ public class DiscordBot implements EventListener {
         }
     }
 
-    public void setCategory(String name) throws NullArgumentException {
-        if (guild == null)
-            throw new NullArgumentException("Guild must be set first. Use setGuild.");
-        Category category = getCategoryByName(name);
-        if (category == null) {
-            guild.createCategory(name).queue(c ->  {
-                setCategory(c);
-            });
-        }
-        else {
-            setCategory(category);
-        }
-    }
-
     public void setCategory(Category category) throws NullArgumentException {
-        if (category == null)
-            throw new NullArgumentException("Category is null.");
         if (this.category == category)
             return;
 
@@ -150,29 +163,27 @@ public class DiscordBot implements EventListener {
         // TODO: set category permissions
     }
 
-    public Guild getGuild() {
-        return guild;
-    }
-
-    public void updateMemberCache() {
+    public void updateMemberCache() { // Cache members by user id
         letAllCategoryPlayersLeave();
 
-        // Cache the members by user id
         categoryMembers.clear();
-        for(Member member : category.getMembers()) {
-            long id = member.getUser().getIdLong();
-            categoryMembers.put(id, member);
-            UUID player = playerDatabase.getPlayer(id);
-            if (player != null)
-                discordPlayerListener.onDiscordPlayerJoin(player, member);
+        if (category != null) {
+            for(Member member : category.getMembers()) {
+                long id = member.getUser().getIdLong();
+                categoryMembers.put(id, member);
+                UUID player = playerDatabase.getPlayer(id);
+                if (player != null)
+                    discordPlayerListener.onDiscordPlayerJoin(player, member);
+            }
         }
     }
 
-    public void updateChannelCache() {
-        // Cache the channels by name
+    public void updateChannelCache() {  // Cache channels by name
         channels.clear();
-        for(VoiceChannel channel : category.getVoiceChannels())
-            channels.put(channel.getName(), channel);
+        if (category != null) {
+            for(VoiceChannel channel : category.getVoiceChannels())
+                channels.put(channel.getName(), channel);
+        }
     }
 
     public boolean isInVoiceChannel(Member member) {
@@ -260,26 +271,28 @@ public class DiscordBot implements EventListener {
     }
 
     private void onMemberVoiceJoin(GuildVoiceJoinEvent event) {
-        if (event.getChannelJoined().getParent().getIdLong() == category.getIdLong()) { // if joining mc category
+        if (category != null && event.getChannelJoined().getParent().getIdLong() == category.getIdLong()) { // if joining mc category
             memberJoinCategory(event.getMember());
         }
     }
 
     private void onMemberVoiceLeave(GuildVoiceLeaveEvent event) {
-        if (event.getChannelLeft().getParent().getIdLong() == category.getIdLong()) {
+        if (category != null && event.getChannelLeft().getParent().getIdLong() == category.getIdLong()) {
             memberLeaveCategory(event.getMember());
         }
     }
 
     private void onMemberVoiceMove(GuildVoiceMoveEvent event) {
-        if (event.getChannelLeft().getParent().getIdLong() != category.getIdLong()
-         && event.getChannelJoined().getParent().getIdLong() == category.getIdLong()) { // if moved inside mc category
-            memberJoinCategory(event.getMember());
+        if (category != null
+            && event.getChannelLeft().getParent().getIdLong() != category.getIdLong()
+            && event.getChannelJoined().getParent().getIdLong() == category.getIdLong()) { // if moved inside mc category
 
+            memberJoinCategory(event.getMember());
         }
-        else if (event.getChannelLeft().getParent().getIdLong() == category.getIdLong()
+        else if (category != null
+            && event.getChannelLeft().getParent().getIdLong() == category.getIdLong()
             && event.getChannelJoined().getParent().getIdLong() != category.getIdLong()) { // if moved outside of mc category
-            Member mem = event.getMember();
+
             memberLeaveCategory(event.getMember());
         }
 
@@ -292,14 +305,11 @@ public class DiscordBot implements EventListener {
 
         if (member == null)
             return;
-        GuildVoiceState state = member.getVoiceState();
-        if (state == null)
-            return;
 
-        if (state.getChannel().getIdLong() != entryChannel.getIdLong()) {
+        /* if (state.getChannel().getIdLong() != entryChannel.getIdLong()) {
             message.addReaction("❓").queue(); // not in entry channel
             return;
-        }
+        }*/
 
         String playerName = message.getContentRaw();
         if (!MojangAPI.isValidName(playerName)) {

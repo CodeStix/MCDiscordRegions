@@ -72,7 +72,7 @@ public class DiscordRegionsCommand implements CommandExecutor
             commandSender.sendMessage("§6Entry channel:§f " + (entryChannel == null ? "<not set>" : (entryChannel.getName() + "(" + entryChannel.getIdLong() + ")")));
 
             commandSender.sendMessage("§dWhitelist: " + (plugin.regionEvents.getUseWhitelist() ? "§aon" : "§coff"));
-            commandSender.sendMessage("§dAutomatic channel creation: " + (plugin.regionEvents.createChannelOnUnknown ? "§aon" : "§coff"));
+            commandSender.sendMessage("§dAutomatic channel creation: " + (plugin.bot.allowCreateNewChannel ? "§aon" : "§coff"));
             return true;
         }
         else if (strings.length >= 1 && strings[0].equalsIgnoreCase("whitelist")) {
@@ -86,26 +86,18 @@ public class DiscordRegionsCommand implements CommandExecutor
         else if (strings.length >= 1 && strings[0].equalsIgnoreCase("autoCreateChannel")) {
             if (strings.length == 2) {
                 boolean autoCreate = strings[1].equalsIgnoreCase("on");
-                plugin.regionEvents.createChannelOnUnknown = autoCreate;
+                plugin.bot.allowCreateNewChannel = autoCreate;
             }
-            commandSender.sendMessage("§dDiscord automatic channel creation is " + (plugin.regionEvents.createChannelOnUnknown ? "§aon" : "§coff"));
-            return true;
-        }
-        else if (strings.length == 2 && strings[0].equalsIgnoreCase("server")) {
-            String serverId = strings[1];
-            try {
-                plugin.bot.setGuild(serverId);
-                commandSender.sendMessage(String.format("§dThe used server is now '%s' (%s). Category and channels have been reset, please configure them again.", plugin.bot.getGuild().getName(), serverId));
-            } catch (NullArgumentException ex) {
-                commandSender.sendMessage(String.format("§cThe server with id '%s' was not found.", serverId));
-            }
+            commandSender.sendMessage("§dDiscord automatic channel creation is " + (plugin.bot.allowCreateNewChannel ? "§aon" : "§coff"));
             return true;
         }
         else if (strings.length >= 2 && strings[0].equalsIgnoreCase("category")) {
             String categoryName = join(" ", 1, strings);
             try {
-                plugin.bot.setCategory(categoryName);
-                commandSender.sendMessage(String.format("§dCategory '%s' is now the active category.", categoryName));
+                plugin.bot.getCategoryByNameOrCreate(categoryName, category -> {
+                    plugin.bot.setCategory(category);
+                    commandSender.sendMessage(String.format("§dCategory '%s' is now the active category.", categoryName));
+                });
             } catch(PermissionException ex) {
                 commandSender.sendMessage("§cCould not set category due to permissions: " + ex.getMessage());
             } catch (NullArgumentException ex) {

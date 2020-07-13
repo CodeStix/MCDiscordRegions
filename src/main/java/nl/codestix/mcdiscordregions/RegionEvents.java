@@ -11,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -22,7 +23,6 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
     private HashMap<Long, Integer> currentPlayerMoveTasks = new HashMap<>();
     private HashMap<UUID, Member> currentSession = new HashMap<>();
 
-    public boolean createChannelOnUnknown = true;
     public boolean kickOnDiscordLeave = true;
     public String kickOnDiscordLeaveMessage = "Not registered.";
 
@@ -30,20 +30,6 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
 
     public RegionEvents(MCDiscordRegionsPlugin plugin) {
         this.plugin = plugin;
-    }
-
-    public void tryGetVoiceChannelForRegion(String regionName, Consumer<VoiceChannel> callback) {
-        VoiceChannel channel = plugin.bot.getChannelByName(regionName);
-        if (channel != null) {
-            callback.accept(channel);
-        }
-        else if (createChannelOnUnknown) {
-            plugin.bot.getChannelByNameOrCreate(regionName, callback);
-        }
-        else {
-            Bukkit.getLogger().warning(String.format("Member entered region %s but no voice channel was available, auto-create-channels is turned off.", regionName));
-            callback.accept(null);
-        }
     }
 
     public boolean getUseWhitelist() {
@@ -66,7 +52,13 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
 
         Player pl = plugin.getServer().getPlayer(playerId);
         if (pl != null)
-            moveNow(channelMember, getPlayerRegionName(playerId, null, null));
+        {
+            String regionName = getPlayerRegionName(playerId, null, null);
+            plugin.bot.getChannelByNameOrCreate(regionName, vc -> {
+                if (vc != null)
+                    moveNow(channelMember, vc);
+            });
+        }
     }
 
     @Override
@@ -95,17 +87,22 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-
         Player pl = event.getPlayer();
         UUID id = pl.getUniqueId();
         Member member = currentSession.get(id);
         if (member == null) {
-            pl.sendMessage(String.format("§eThis server supports Discord Regions, to use this feature, " +
-                    "go to the Discord server of this Minecraft server and join the §f%s§e channel. " +
-                    "Then, send your Minecraft in-game name to a bot named §f%s§e in private.", plugin.bot.getEntryChannel().getName(), plugin.bot.getName()));
+            if (plugin.bot.getEntryChannel() != null) {
+                pl.sendMessage(String.format("§eThis server supports Discord Regions, to use this feature, " +
+                        "go to the Discord server of this Minecraft server and join the §f%s§e channel. " +
+                        "Then, send your Minecraft in-game name to a bot named §f%s§e in private.", plugin.bot.getEntryChannel().getName(), plugin.bot.getName()));
+            }
         }
         else {
-            moveNow(member, getPlayerRegionName(id, null, null));
+            String regionName = getPlayerRegionName(id, null, null);
+            plugin.bot.getChannelByNameOrCreate(regionName, vc -> {
+                if (vc != null)
+                    moveNow(member, vc);
+            });
         }
     }
 
@@ -128,18 +125,25 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
         moveToEntry(event.getPlayer().getUniqueId());
     }
 
-    private void moveNow(Member member, String regionName) {
-        tryGetVoiceChannelForRegion(regionName, (vc) -> {
+    @EventHandler
+    public void onRespawn(PlayerRespawnEvent event) {
+        UUID id = event.getPlayer().getUniqueId();
+        String regionName = getPlayerRegionName(id, null, null);
+        plugin.bot.getChannelByNameOrCreate(regionName, vc -> {
             if (vc != null)
-                plugin.bot.getGuild().moveVoiceMember(member, vc).queue();
+                moveNow(currentSession.get(id), vc);
         });
     }
 
-    private void moveDelayed(Member member, String regionName) {
+    private void moveNow(Member member, VoiceChannel voiceChannel) {
+        plugin.bot.getGuild().moveVoiceMember(member, voiceChannel).queue();
+    }
+
+    private void moveDelayed(Member member, VoiceChannel voiceChannel) {
         long id = member.getIdLong();
         if (currentPlayerMoveTasks.containsKey(id))
             Bukkit.getScheduler().cancelTask(currentPlayerMoveTasks.get(id));
-        currentPlayerMoveTasks.put(id, Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> moveNow(member, regionName), MOVE_DELAY_TICKS));
+        currentPlayerMoveTasks.put(id, Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> moveNow(member, voiceChannel), MOVE_DELAY_TICKS));
     }
 
     public String getPlayerRegionName(UUID playerId, ProtectedRegion include, ProtectedRegion exclude) {
@@ -158,26 +162,46 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
     }
 
     @EventHandler
-    public void onRegionEntered(RegionEnteredEvent event)
-    {
+    public void onRegionEntered(RegionEnteredEvent event) {
         UUID id = event.getUUID();
-
         Member member = currentSession.get(id);
         if (member == null || !plugin.bot.isInVoiceChannel(member))
             return;
 
-        moveDelayed(member, getPlayerRegionName(id, event.getRegion(), null));
+        String regionName = getPlayerRegionName(id, event.getRegion(), null);
+        plugin.bot.getChannelByNameOrCreate(regionName, vc -> {
+            int userLimit = vc.getUserLimit();
+            if (vc == null)
+                return;
+            if (userLimit == 0 || vc.getMembers().size() < userLimit) {
+                moveDelayed(member, vc);
+            }
+            else {
+                event.setCancelled(true);
+                event.getPlayer().sendMessage(String.format("§cYou can not enter %s, it has a limit of %d players.", regionName, userLimit));
+            }
+        });
     }
 
     @EventHandler
     public void onRegionExit(RegionLeftEvent event) {
-
         UUID id = event.getUUID();
-
         Member member = currentSession.get(id);
         if (member == null || !plugin.bot.isInVoiceChannel(member))
             return;
 
-        moveDelayed(member, getPlayerRegionName(id, null, event.getRegion()));
+        String regionName = getPlayerRegionName(id, null, event.getRegion());
+        plugin.bot.getChannelByNameOrCreate(regionName, vc -> {
+            int userLimit = vc.getUserLimit();
+            if (vc == null)
+                return;
+            if (userLimit == 0 || vc.getMembers().size() < userLimit) {
+                moveDelayed(member, vc);
+            }
+            else {
+                event.setCancelled(true);
+                event.getPlayer().sendMessage(String.format("§cYou can not enter %s, it has a limit of %d players.", regionName, userLimit));
+            }
+        });
     }
 }

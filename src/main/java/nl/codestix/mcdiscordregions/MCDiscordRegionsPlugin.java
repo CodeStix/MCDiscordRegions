@@ -1,8 +1,8 @@
 package nl.codestix.mcdiscordregions;
 
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.exceptions.PermissionException;
-import org.apache.commons.lang.NullArgumentException;
+import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldguard.protection.flags.StringFlag;
+import com.sk89q.worldguard.protection.flags.registry.FlagRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -22,15 +22,27 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     private static final String CONFIG_DISCORD_SERVER = "discord.server";
     private static final String CONFIG_DISCORD_CATEGORY = "discord.category";
     private static final String CONFIG_DISCORD_ENTRY_CHANNEL = "discord.entry-channel-name";
-    private static final String CONFIG_DISCORD_GLOBAL_CHANNEL = "discord.global-channel-name";
     private static final String CONFIG_DISCORD_AUTO_CREATE_CHANNELS = "discord.auto-create-channels";
     private static final String CONFIG_MINECRAFT_USE_WHITELIST = "minecraft.use-whitelist";
     private static final String CONFIG_MINECRAFT_KICK_DISCORD_LEAVE = "minecraft.kick-on-discord-leave";
     private static final String CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE = "minecraft.kick-on-discord-leave-message";
 
+    public StringFlag discordChannelFlag = new StringFlag("discord-channel");
+    private WorldGuardHandler.Factory worldGuardHandlerFactory;
+
+    @Override
+    public void onLoad() {
+        FlagRegistry reg = WorldGuard.getInstance().getFlagRegistry();
+        if (reg.get(discordChannelFlag.getName()) == null)
+            reg.register(discordChannelFlag);
+    }
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
+
+        worldGuardHandlerFactory = new WorldGuardHandler.Factory(this);
+        WorldGuard.getInstance().getPlatform().getSessionManager().registerHandler(worldGuardHandlerFactory, null);
 
         try {
             playerDatabase = new ConfigDiscordPlayerDatabase(new File(getDataFolder(), "players.yml"));
@@ -83,12 +95,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
                     getLogger().info(String.format("Setting entry voice channel to '%s'", entryChannelName));
                     bot.setEntryChannel(entryChannelName, false);
                 }
-
-                String globalChannelName = getConfig().getString(CONFIG_DISCORD_GLOBAL_CHANNEL);
-                if (globalChannelName != null) {
-                    getLogger().info(String.format("Setting global voice channel to '%s'", globalChannelName));
-                    bot.setGlobalChannel(globalChannelName, false);
-                }
             });
         }
 
@@ -111,6 +117,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
                 getLogger().warning("Could not save players.yml: " + ex);
             }
         }
+
+        WorldGuard.getInstance().getPlatform().getSessionManager().unregisterHandler(worldGuardHandlerFactory);
     }
 
     @Override
@@ -119,7 +127,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         c.set(CONFIG_DISCORD_SERVER, bot.getGuild().getIdLong());
         c.set(CONFIG_DISCORD_CATEGORY, bot.getCategory().getName());
         c.set(CONFIG_DISCORD_ENTRY_CHANNEL, bot.getEntryChannel().getName());
-        c.set(CONFIG_DISCORD_GLOBAL_CHANNEL, bot.getGlobalChannel().getName());
         c.set(CONFIG_DISCORD_AUTO_CREATE_CHANNELS, bot.allowCreateNewChannel);
         c.set(CONFIG_MINECRAFT_USE_WHITELIST, regionEvents.getUseWhitelist());
         c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, regionEvents.kickOnDiscordLeave);

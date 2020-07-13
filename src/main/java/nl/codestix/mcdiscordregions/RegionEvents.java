@@ -1,9 +1,9 @@
 package nl.codestix.mcdiscordregions;
 
-import com.sk89q.worldguard.protection.regions.ProtectedRegion;
-import net.dv8tion.jda.api.entities.*;
-import net.raidstone.wgevents.WorldGuardEvents;
-import net.raidstone.wgevents.events.*;
+import com.sk89q.worldguard.protection.ApplicableRegionSet;
+import net.dv8tion.jda.api.entities.GuildVoiceState;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -13,20 +13,22 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 
-import java.util.*;
-import java.util.function.Consumer;
+import java.util.HashMap;
+import java.util.UUID;
 
 public class RegionEvents implements Listener, IDiscordPlayerEvents {
 
     private MCDiscordRegionsPlugin plugin;
     private boolean useWhitelist = false;
-    private HashMap<Long, Integer> currentPlayerMoveTasks = new HashMap<>();
+
     private HashMap<UUID, Member> currentSession = new HashMap<>();
+
+    // To limit player Discord channel moving
+    private HashMap<Long, Integer> delayedPlayerMoveTasks = new HashMap<>();
+    private HashMap<Long, Long> lastPlayerTryMoveTimes = new HashMap<>();
 
     public boolean kickOnDiscordLeave = true;
     public String kickOnDiscordLeaveMessage = "Not registered.";
-
-    private final int MOVE_DELAY_TICKS = 4; // ~20 ticks per second
 
     public RegionEvents(MCDiscordRegionsPlugin plugin) {
         this.plugin = plugin;
@@ -53,11 +55,7 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
         Player pl = plugin.getServer().getPlayer(playerId);
         if (pl != null)
         {
-            String regionName = getPlayerRegionName(playerId, null, null);
-            plugin.bot.getChannelByNameOrCreate(regionName, vc -> {
-                if (vc != null)
-                    moveNow(channelMember, vc);
-            });
+            forcePlayerMoveChannel(pl, channelMember);
         }
     }
 
@@ -88,8 +86,7 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player pl = event.getPlayer();
-        UUID id = pl.getUniqueId();
-        Member member = currentSession.get(id);
+        Member member = currentSession.get(pl.getUniqueId());
         if (member == null) {
             if (plugin.bot.getEntryChannel() != null) {
                 pl.sendMessage(String.format("§eThis server supports Discord Regions, to use this feature, " +
@@ -98,11 +95,7 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
             }
         }
         else {
-            String regionName = getPlayerRegionName(id, null, null);
-            plugin.bot.getChannelByNameOrCreate(regionName, vc -> {
-                if (vc != null)
-                    moveNow(member, vc);
-            });
+            forcePlayerMoveChannel(pl, member);
         }
     }
 
@@ -127,81 +120,101 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
-        UUID id = event.getPlayer().getUniqueId();
-        String regionName = getPlayerRegionName(id, null, null);
-        plugin.bot.getChannelByNameOrCreate(regionName, vc -> {
-            if (vc != null)
-                moveNow(currentSession.get(id), vc);
-        });
+        Player pl = event.getPlayer();
+        Member member = currentSession.get(pl.getUniqueId());
+        if (member != null)
+            forcePlayerMoveChannel(pl, member);
     }
 
-    private void moveNow(Member member, VoiceChannel voiceChannel) {
-        plugin.bot.getGuild().moveVoiceMember(member, voiceChannel).queue();
+    private boolean tryMoveDelayed(Member member, VoiceChannel voiceChannel) {
+        int userLimit = voiceChannel.getUserLimit();
+        if (userLimit == 0 || voiceChannel.getMembers().size() < userLimit) {
+            forceMoveDelayed(member, voiceChannel);
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
-    private void moveDelayed(Member member, VoiceChannel voiceChannel) {
+    private void forceMoveDelayed(Member member, VoiceChannel voiceChannel) {
+        GuildVoiceState state = member.getVoiceState();
+        if (state == null || !state.inVoiceChannel() || state.getChannel().getIdLong() == voiceChannel.getIdLong())
+            return;
         long id = member.getIdLong();
-        if (currentPlayerMoveTasks.containsKey(id))
-            Bukkit.getScheduler().cancelTask(currentPlayerMoveTasks.get(id));
-        currentPlayerMoveTasks.put(id, Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> moveNow(member, voiceChannel), MOVE_DELAY_TICKS));
+        long currentTime = System.currentTimeMillis();
+        Long l = lastPlayerTryMoveTimes.get(id);
+        if (l == null || currentTime - l > 1000) {
+            // move instantly
+            plugin.bot.move(member, voiceChannel);
+        }
+        else {
+            // delay the move
+            final int MOVE_DELAY_TICKS = 16; // ~20 ticks per second
+            if (delayedPlayerMoveTasks.containsKey(id))
+                Bukkit.getScheduler().cancelTask(delayedPlayerMoveTasks.get(id));
+            delayedPlayerMoveTasks.put(id, Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> plugin.bot.move(member, voiceChannel), MOVE_DELAY_TICKS));
+        }
+        lastPlayerTryMoveTimes.put(id, currentTime);
     }
 
-    public String getPlayerRegionName(UUID playerId, ProtectedRegion include, ProtectedRegion exclude) {
-        Set<ProtectedRegion> regions = WorldGuardEvents.getRegions(playerId);
-        if (include != null)
-            regions.add(include);
-        if (exclude != null)
-            regions.remove(exclude);
-        ProtectedRegion[] reg = regions.toArray(new ProtectedRegion[0]);
-        Arrays.sort(reg, (o1, o2) -> o1.volume() - o2.volume()); // Sort by region volume
+    public void forcePlayerMoveChannel(Player pl, Member member) {
+        ApplicableRegionSet set = WorldGuardHandler.getPlayerRegions(pl);
+        String channelName = set.queryValue(null, plugin.discordChannelFlag);
+        if (channelName == null) {
+            forceMoveDelayed(member, plugin.bot.getEntryChannel());
+            plugin.getLogger().warning("No global Discord channel defined, use '/region flag __global__ discord-channel Global' to set the global Discord channel to 'Global'.");
+            return;
+        }
 
-        if (reg.length <= 0)
-            return plugin.bot.getGlobalChannel().getName();
-        else
-            return reg[0].getId(); // The first item in the sorted list is the smallest region
+        VoiceChannel vc = plugin.bot.getChannelByName(channelName);
+        if (vc == null) {
+            if (plugin.bot.allowCreateNewChannel)
+                plugin.bot.createChannel(channelName, nvc -> forceMoveDelayed(member, nvc));
+            else
+                forceMoveDelayed(member, plugin.bot.getEntryChannel());
+        }
+        else {
+            forceMoveDelayed(member, vc);
+        }
     }
 
     @EventHandler
-    public void onRegionEntered(RegionEnteredEvent event) {
-        UUID id = event.getUUID();
+    public void onRegionChange(RegionChangeEvent event) {
+        UUID id = event.getId();
         Member member = currentSession.get(id);
         if (member == null || !plugin.bot.isInVoiceChannel(member))
             return;
 
-        String regionName = getPlayerRegionName(id, event.getRegion(), null);
-        plugin.bot.getChannelByNameOrCreate(regionName, vc -> {
-            int userLimit = vc.getUserLimit();
-            if (vc == null)
-                return;
-            if (userLimit == 0 || vc.getMembers().size() < userLimit) {
-                moveDelayed(member, vc);
-            }
-            else {
-                event.setCancelled(true);
-                event.getPlayer().sendMessage(String.format("§cYou can not enter %s, it has a limit of %d players.", regionName, userLimit));
-            }
-        });
-    }
+//        Bukkit.getLogger().info(event.getPlayer().getName() + " entered new region: " + (event.getEnteredRegion() == null ? "(null)" : event.getEnteredRegion().getId()));
 
-    @EventHandler
-    public void onRegionExit(RegionLeftEvent event) {
-        UUID id = event.getUUID();
-        Member member = currentSession.get(id);
-        if (member == null || !plugin.bot.isInVoiceChannel(member))
+        String channelName = event.getRegionSet().queryValue(null, plugin.discordChannelFlag);
+        if (channelName == null)
+        {
+            forceMoveDelayed(member, plugin.bot.getEntryChannel());
+            plugin.getLogger().warning("No global Discord channel defined, use '/region flag __global__ discord-channel Global' to set the global Discord channel to 'Global'.");
             return;
+        }
 
-        String regionName = getPlayerRegionName(id, null, event.getRegion());
-        plugin.bot.getChannelByNameOrCreate(regionName, vc -> {
-            int userLimit = vc.getUserLimit();
-            if (vc == null)
-                return;
-            if (userLimit == 0 || vc.getMembers().size() < userLimit) {
-                moveDelayed(member, vc);
+        VoiceChannel vc = plugin.bot.getChannelByName(channelName);
+        if (vc == null)
+        {
+            if (plugin.bot.allowCreateNewChannel) {
+                plugin.bot.createChannel(channelName, c -> {
+                    if (c != null)
+                        plugin.getLogger().info("Created new voice channel");
+                });
+                event.setCancelled(true); // cancel until channel is created
             }
             else {
-                event.setCancelled(true);
-                event.getPlayer().sendMessage(String.format("§cYou can not enter %s, it has a limit of %d players.", regionName, userLimit));
+                Bukkit.getLogger().warning("Player entered region but no Discord channel was available (and channel creation is disallowed): " + channelName);
             }
-        });
+            return;
+        }
+
+        if (!tryMoveDelayed(member, vc)) {
+            event.setCancelled(true);
+            event.getPlayer().sendMessage(String.format("§cYou can not enter %s, it has a limit of %d players.", channelName, vc.getUserLimit()));
+        }
     }
 }

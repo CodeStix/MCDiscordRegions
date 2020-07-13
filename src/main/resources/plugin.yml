@@ -4,9 +4,9 @@ version: 0.1
 api-version: 1.15
 main: nl.codestix.mcdiscordregions.MCDiscordRegionsPlugin
 author: Stijn Rogiest
-depend: [WorldGuard, WorldGuardEvents]
+depend: [WorldGuard]
 commands:
  dregion:
    aliases: [drg]
    description: Configure the MCDiscordRegions plugin.
-   usage: /dregion [info | save | autoCreateChannel [on|off] | whitelist [on|off] | entry <channelName> | global <channelName> | category <categoryName>]
+   usage: /dregion [info | save | autoCreateChannel [on|off] | whitelist [on|off] | entry <channelName> | category <categoryName>]

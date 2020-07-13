@@ -18,5 +18,3 @@ discord:
   auto-create-channels: true
   # The name of the Entry channel, this is the name of the channel where players should join to use the system.
   entry-channel-name: Entry
-  # The name of the channel the player will be in if it is in the __global__ region.
-  global-channel-name: Outside

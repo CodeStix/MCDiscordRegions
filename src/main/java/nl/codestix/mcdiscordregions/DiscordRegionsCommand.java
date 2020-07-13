@@ -43,7 +43,6 @@ public class DiscordRegionsCommand implements CommandExecutor
             Guild guild = plugin.bot.getGuild();
             Category category = plugin.bot.getCategory();
             VoiceChannel entryChannel = plugin.bot.getEntryChannel();
-            VoiceChannel globalChannel = plugin.bot.getGlobalChannel();
 
             if (category != null) {
                 Set<Map.Entry<String, VoiceChannel>> channels = plugin.bot.getChannels().entrySet();
@@ -53,8 +52,6 @@ public class DiscordRegionsCommand implements CommandExecutor
                     String format;
                     if (entry.getValue() == entryChannel)
                         format = "§6#%d:§r %s §a(entry channel)§r";
-                    else if (entry.getValue() == globalChannel)
-                        format = "§6#%d:§r %s §e(global channel)§r";
                     else
                         format = "§6#%d:§r %s";
                     commandSender.sendMessage(String.format(format, ++i, entry.getKey()));
@@ -68,11 +65,13 @@ public class DiscordRegionsCommand implements CommandExecutor
             commandSender.sendMessage("§dDiscord information:");
             commandSender.sendMessage("§6Server:§f " + (guild == null ? "<not set>" : (guild.getName() + "(" + guild.getIdLong() + ")")));
             commandSender.sendMessage("§6Category:§f " + (category == null ? "<not set>" : (category.getName() + "(" + category.getIdLong() + ")")));
-            commandSender.sendMessage("§6Global channel:§f " + (globalChannel == null ? "<not set>" : (globalChannel.getName() + "(" + globalChannel.getIdLong() + ")")));
             commandSender.sendMessage("§6Entry channel:§f " + (entryChannel == null ? "<not set>" : (entryChannel.getName() + "(" + entryChannel.getIdLong() + ")")));
 
             commandSender.sendMessage("§dWhitelist: " + (plugin.regionEvents.getUseWhitelist() ? "§aon" : "§coff"));
             commandSender.sendMessage("§dAutomatic channel creation: " + (plugin.bot.allowCreateNewChannel ? "§aon" : "§coff"));
+            commandSender.sendMessage("§dKick on Discord leave: " + (plugin.regionEvents.kickOnDiscordLeave ? "§aon" : "§coff"));
+            if (plugin.regionEvents.kickOnDiscordLeave)
+                commandSender.sendMessage("§dKick on Discord leave message: §f" + plugin.regionEvents.kickOnDiscordLeaveMessage);
             return true;
         }
         else if (strings.length >= 1 && strings[0].equalsIgnoreCase("whitelist")) {
@@ -113,18 +112,6 @@ public class DiscordRegionsCommand implements CommandExecutor
                 commandSender.sendMessage("§cCould not set category due to permissions: " + ex.getMessage());
             } catch (NullArgumentException ex) {
                 commandSender.sendMessage(String.format("§cThe specified category '%s' was not found.", categoryName));
-            }
-            return true;
-        }
-        else if (strings.length >= 2 && strings[0].equalsIgnoreCase("global")) {
-            String globalChannelName = join(" ", 1, strings);
-            try {
-                plugin.bot.setGlobalChannel(globalChannelName, true);
-                commandSender.sendMessage(String.format("§dGlobal channel name is now set to '%s'.", globalChannelName));
-            } catch(PermissionException ex) {
-                commandSender.sendMessage("§cCould not set global channel name due to permissions: " + ex.getMessage());
-            } catch (NullArgumentException ex) {
-                commandSender.sendMessage("§c" + ex.getMessage());
             }
             return true;
         }

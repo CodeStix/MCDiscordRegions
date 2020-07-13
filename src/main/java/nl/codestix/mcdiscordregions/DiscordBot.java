@@ -9,14 +9,13 @@ import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceMoveEvent;
 import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
+import net.dv8tion.jda.api.requests.restaction.ChannelAction;
 import net.dv8tion.jda.api.utils.Compression;
 import org.apache.commons.lang.NullArgumentException;
+import org.bukkit.Bukkit;
 
 import javax.security.auth.login.LoginException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 
 public class DiscordBot implements EventListener {
@@ -28,7 +27,6 @@ public class DiscordBot implements EventListener {
     private HashMap<Long, Member> categoryMembers = new HashMap<>();
     private Guild guild;
     private VoiceChannel entryChannel;
-    private VoiceChannel globalChannel;
     private IDiscordPlayerEvents discordPlayerListener;
     private IDiscordPlayerDatabase playerDatabase;
 
@@ -94,18 +92,14 @@ public class DiscordBot implements EventListener {
             callback.accept(category);
     }
 
-    public void getChannelByNameOrCreate(String name, Consumer<VoiceChannel> callback) {
-        if (category == null)
-            throw new NullArgumentException("Category is null, this must be set first using setCategory.");
-        if (channels.containsKey(name))
-            callback.accept(channels.get(name));
-        else if (allowCreateNewChannel)
-            category.createVoiceChannel(name).queue(vc -> {
-                updateChannelCache();
-                callback.accept(vc);
-            });
-        else
-            callback.accept(null);
+    public void createChannel(String name, Consumer<VoiceChannel> callback) {
+        if (!allowCreateNewChannel)
+            throw new IllegalStateException("Not allowed to create channels.");
+
+        category.createVoiceChannel(name).queue(vc -> {
+            updateChannelCache();
+            callback.accept(vc);
+        });
     }
 
     public Category getCategoryByName(String name) {
@@ -124,31 +118,6 @@ public class DiscordBot implements EventListener {
 
     public Collection<Member> getCategoryMembers() {
         return categoryMembers.values();
-    }
-
-    public VoiceChannel getGlobalChannel() {
-        if (globalChannel == null)
-            return entryChannel;
-        else
-            return globalChannel;
-    }
-
-    public void setGlobalChannel(String globalChannelName, boolean allowRenamePrevious) {
-        if (category == null)
-            throw new NullArgumentException("Category is null, this must be set first using setCategory.");
-
-        if (allowRenamePrevious && globalChannel != null) {
-            globalChannel.getManager().setName(globalChannelName).queue();
-        }
-        else if (channels.containsKey(globalChannelName)) {
-            globalChannel = channels.get(globalChannelName);
-        }
-        else {
-            category.createVoiceChannel(globalChannelName).queue(c -> {
-                globalChannel = c;
-                updateChannelCache();
-            });
-        }
     }
 
     public void setCategory(Category category) throws NullArgumentException {
@@ -331,5 +300,9 @@ public class DiscordBot implements EventListener {
         discordPlayerListener.onDiscordPlayerJoin(playerUUID, member);
 
         message.addReaction("✅").queue();
+    }
+
+    public void move(Member member, VoiceChannel voiceChannel) {
+        guild.moveVoiceMember(member, voiceChannel).queue();
     }
 }

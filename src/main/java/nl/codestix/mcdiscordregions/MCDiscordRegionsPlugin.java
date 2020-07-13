@@ -25,6 +25,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     private static final String CONFIG_DISCORD_GLOBAL_CHANNEL = "discord.global-channel-name";
     private static final String CONFIG_DISCORD_AUTO_CREATE_CHANNELS = "discord.auto-create-channels";
     private static final String CONFIG_MINECRAFT_USE_WHITELIST = "minecraft.use-whitelist";
+    private static final String CONFIG_MINECRAFT_KICK_DISCORD_LEAVE = "minecraft.kick-on-discord-leave";
+    private static final String CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE = "minecraft.kick-on-discord-leave-message";
 
     @Override
     public void onEnable() {
@@ -111,11 +113,13 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             }
         }
 
-        getCommand("drg").setExecutor(new DiscordRegionsCommand(this));
+        getCommand("dregion").setExecutor(new DiscordRegionsCommand(this));
 
         regionEvents = new RegionEvents(this);
         regionEvents.setUseWhitelist(getConfig().getBoolean(CONFIG_MINECRAFT_USE_WHITELIST, false));
         regionEvents.createChannelOnUnknown = getConfig().getBoolean(CONFIG_DISCORD_AUTO_CREATE_CHANNELS, true);
+        regionEvents.kickOnDiscordLeave = getConfig().getBoolean(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, true);
+        regionEvents.kickOnDiscordLeaveMessage = getConfig().getString(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE, "Not registered.");
         bot.setDiscordPlayerEventsListener(regionEvents);
         Bukkit.getPluginManager().registerEvents(regionEvents, this);
 
@@ -125,9 +129,10 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (bot != null)
+        {
+            bot.letAllCategoryPlayersLeave();
             bot.destroy();
-        if (regionEvents != null && regionEvents.getUseWhitelist())
-            regionEvents.unregisterAllPlayers();
+        }
         if (playerDatabase != null) {
             try {
                 playerDatabase.save();
@@ -147,6 +152,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         c.set(CONFIG_DISCORD_GLOBAL_CHANNEL, bot.getGlobalChannel().getName());
         c.set(CONFIG_DISCORD_AUTO_CREATE_CHANNELS, regionEvents.createChannelOnUnknown);
         c.set(CONFIG_MINECRAFT_USE_WHITELIST, regionEvents.getUseWhitelist());
+        c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, regionEvents.kickOnDiscordLeave);
+        c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE, regionEvents.kickOnDiscordLeaveMessage);
         super.saveConfig();
     }
 }

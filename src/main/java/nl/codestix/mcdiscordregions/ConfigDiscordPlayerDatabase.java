@@ -14,8 +14,8 @@ public class ConfigDiscordPlayerDatabase implements IDiscordPlayerDatabase {
     private File file;
     private HashMap<Long, UUID> players = new HashMap<>();
 
-    public Integer maxPlayers = null;
-    public boolean acceptNewPlayers = true;
+    public Integer maxPlayers;
+    public boolean acceptNewPlayers;
 
     private static final String CONFIG_DISCORD_PLAYERS = "discord-minecraft-players";
     private static final String CONFIG_MAX_PLAYERS = "max-players";

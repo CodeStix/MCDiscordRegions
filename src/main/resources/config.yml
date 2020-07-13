@@ -3,6 +3,9 @@ minecraft:
   # When true, players who register themselves with the bot, will be automatically whitelisted. And when they leave the discord channel, they will be un-whitelisted.
   # You are forcing players to join the discord server.
   use-whitelist: false
+  # When true, kicks the player when he/she leaves the Minecraft regions Discord category (specified by discord.category).
+  kick-on-discord-leave: true
+  kick-on-discord-leave-message: Not registered.
 
 discord:
   # Your discord bot token, must be filled in.

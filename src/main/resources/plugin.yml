@@ -6,6 +6,7 @@ main: nl.codestix.mcdiscordregions.MCDiscordRegionsPlugin
 author: Stijn Rogiest
 depend: [WorldGuard, WorldGuardEvents]
 commands:
- drg:
+ dregion:
+   aliases: [drg]
    description: Configure the MCDiscordRegions plugin.
-   usage: /drg [info | save | autoCreateChannel [on|off] | whitelist [on|off] | entry <channelName> | global <channelName> | category <categoryName> | server <serverId>]
+   usage: /dregion [info | save | autoCreateChannel [on|off] | whitelist [on|off] | entry <channelName> | global <channelName> | category <categoryName> | server <serverId>]

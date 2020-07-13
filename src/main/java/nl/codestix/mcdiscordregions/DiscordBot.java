@@ -145,6 +145,7 @@ public class DiscordBot implements EventListener {
         this.entryChannel = null;
         this.category = category;
         updateChannelCache();
+        updateMemberCache();
 
         // TODO: set category permissions
     }
@@ -153,16 +154,25 @@ public class DiscordBot implements EventListener {
         return guild;
     }
 
+    public void updateMemberCache() {
+        letAllCategoryPlayersLeave();
+
+        // Cache the members by user id
+        categoryMembers.clear();
+        for(Member member : category.getMembers()) {
+            long id = member.getUser().getIdLong();
+            categoryMembers.put(id, member);
+            UUID player = playerDatabase.getPlayer(id);
+            if (player != null)
+                discordPlayerListener.onDiscordPlayerJoin(player, member);
+        }
+    }
+
     public void updateChannelCache() {
         // Cache the channels by name
         channels.clear();
         for(VoiceChannel channel : category.getVoiceChannels())
             channels.put(channel.getName(), channel);
-
-        // Cache the members by user id
-        categoryMembers.clear();
-        for(Member member : category.getMembers())
-            categoryMembers.put(member.getUser().getIdLong(), member);
     }
 
     public boolean isInVoiceChannel(Member member) {
@@ -211,6 +221,14 @@ public class DiscordBot implements EventListener {
         return categoryMembers.get(userId);
     }
 
+    public void letAllCategoryPlayersLeave() {
+        for(Member mem : categoryMembers.values()) {
+            UUID player = playerDatabase.getPlayer(mem.getUser().getIdLong());
+            if (player != null)
+                discordPlayerListener.onDiscordPlayerLeave(player, mem);
+        }
+    }
+
     @Override
     public void onEvent(GenericEvent genericEvent) {
 //        Bukkit.getLogger().info("Event: " + genericEvent.getClass().getName());
@@ -225,16 +243,20 @@ public class DiscordBot implements EventListener {
     }
 
     private void memberJoinCategory(Member mem) {
-        categoryMembers.put(mem.getUser().getIdLong(), mem);
-        UUID player = playerDatabase.getPlayer(mem.getUser().getIdLong());
+        long id = mem.getUser().getIdLong();
+        categoryMembers.put(id, mem);
+        UUID player = playerDatabase.getPlayer(id);
         if (player != null)
             discordPlayerListener.onDiscordPlayerJoin(player, mem);
         // else: needs to register themselves with the Discord bot in private.
     }
 
     private void memberLeaveCategory(Member mem) {
-        categoryMembers.remove(mem.getUser().getIdLong());
-        discordPlayerListener.onDiscordPlayerLeave(mem); // async because on bot thread
+        long id = mem.getUser().getIdLong();
+        categoryMembers.remove(id);
+        UUID player = playerDatabase.getPlayer(id);
+        if (player != null)
+            discordPlayerListener.onDiscordPlayerLeave(player, mem);
     }
 
     private void onMemberVoiceJoin(GuildVoiceJoinEvent event) {

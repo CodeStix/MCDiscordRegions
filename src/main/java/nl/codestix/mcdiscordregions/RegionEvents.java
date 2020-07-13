@@ -23,7 +23,10 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
     private HashMap<UUID, Member> currentSession = new HashMap<>();
 
     public boolean createChannelOnUnknown = true;
-    public final int MOVE_DELAY_TICKS = 4; // ~20 ticks per second
+    public boolean kickOnDiscordLeave = true;
+    public String kickOnDiscordLeaveMessage = "Not registered.";
+
+    private final int MOVE_DELAY_TICKS = 4; // ~20 ticks per second
 
     public RegionEvents(MCDiscordRegionsPlugin plugin) {
         this.plugin = plugin;
@@ -67,23 +70,7 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
     }
 
     @Override
-    public boolean onDiscordPlayerLeave(Member channelMember) {
-        return unregisterPlayer(getUUIDFromMember(channelMember));
-    }
-
-    public UUID getUUIDFromMember(Member channelMember) {
-        for(Map.Entry<UUID, Member> mem : currentSession.entrySet())
-            if (mem.getValue().getIdLong() == channelMember.getIdLong())
-                return mem.getKey();
-        return null;
-    }
-
-    public void unregisterAllPlayers() {
-        for(UUID id : currentSession.keySet())
-            unregisterPlayer(id);
-    }
-
-    public boolean unregisterPlayer(UUID playerId) {
+    public boolean onDiscordPlayerLeave(UUID playerId, Member channelMember) {
         if (playerId == null)
             return false;
 
@@ -92,15 +79,17 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
         if (useWhitelist)
             Bukkit.getOfflinePlayer(playerId).setWhitelisted(false);
 
-        Player pl = plugin.getServer().getPlayer(playerId);
-        if (pl != null)
-        {
-            final String KICK_MESSAGE = "Not registered.";
-            if (Bukkit.isPrimaryThread())
-                pl.kickPlayer(KICK_MESSAGE);
-            else
-                Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> pl.kickPlayer(KICK_MESSAGE));
+        if (kickOnDiscordLeave) {
+            Player pl = plugin.getServer().getPlayer(playerId);
+            if (pl != null)
+            {
+                if (Bukkit.isPrimaryThread())
+                    pl.kickPlayer(kickOnDiscordLeaveMessage);
+                else
+                    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> pl.kickPlayer(kickOnDiscordLeaveMessage));
+            }
         }
+
         return removed;
     }
 

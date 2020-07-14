@@ -1,8 +1,14 @@
 package nl.codestix.mcdiscordregions;
 
 import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.StringFlag;
 import com.sk89q.worldguard.protection.flags.registry.FlagRegistry;
+import nl.codestix.mcdiscordregions.command.DiscordRegionsCommand;
+import nl.codestix.mcdiscordregions.database.ConfigDiscordPlayerDatabase;
+import nl.codestix.mcdiscordregions.listener.DiscordPlayerListener;
+import nl.codestix.mcdiscordregions.listener.PlayerListener;
+import nl.codestix.mcdiscordregions.listener.RegionListener;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -15,8 +21,11 @@ import java.io.IOException;
 public class MCDiscordRegionsPlugin extends JavaPlugin {
 
     public ConfigDiscordPlayerDatabase playerDatabase;
-    public RegionEvents regionEvents;
     public DiscordBot bot;
+
+    public RegionListener regionListener;
+    public DiscordPlayerListener discordPlayerListener;
+    public PlayerListener playerListener;
 
     private static final String CONFIG_DISCORD_BOT_TOKEN = "discord.token";
     private static final String CONFIG_DISCORD_SERVER = "discord.server";
@@ -30,18 +39,29 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     public StringFlag discordChannelFlag = new StringFlag("discord-channel");
     private WorldGuardHandler.Factory worldGuardHandlerFactory;
 
+    private static MCDiscordRegionsPlugin instance;
+
+    public static MCDiscordRegionsPlugin getInstance() {
+        return instance;
+    }
+
     @Override
     public void onLoad() {
         FlagRegistry reg = WorldGuard.getInstance().getFlagRegistry();
-        if (reg.get(discordChannelFlag.getName()) == null)
+        Flag<?> f = reg.get(discordChannelFlag.getName());
+        if (f == null)
             reg.register(discordChannelFlag);
+        else
+            discordChannelFlag = (StringFlag)f;
     }
 
     @Override
     public void onEnable() {
+        instance = this;
+
         saveDefaultConfig();
 
-        worldGuardHandlerFactory = new WorldGuardHandler.Factory(this);
+        worldGuardHandlerFactory = new WorldGuardHandler.Factory();
         WorldGuard.getInstance().getPlatform().getSessionManager().registerHandler(worldGuardHandlerFactory, null);
 
         try {
@@ -49,6 +69,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         }
         catch(IOException | InvalidConfigurationException ex) {
             getLogger().warning("Could not load players.yml, please ensure correct yml format or delete the file to recreate it.");
+            getPluginLoader().disablePlugin(this);
             return;
         }
 
@@ -65,9 +86,13 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         }
         catch(NullPointerException ex) {
             getLogger().warning("No discord server was found, first, invite the bot to a server, then use this plugin.");
+            getPluginLoader().disablePlugin(this);
+            return;
         }
         catch(InterruptedException ex) {
             getLogger().warning("Login got interrupted: " + ex);
+            getPluginLoader().disablePlugin(this);
+            return;
         }
         catch(LoginException ex) {
             getLogger().warning("Invalid token: " + ex);
@@ -77,12 +102,17 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
 
         bot.playerMinimumMoveInterval = getConfig().getInt(CONFIG_DISCORD_MIN_MOVE_INTERVAL, bot.playerMinimumMoveInterval);
 
-        regionEvents = new RegionEvents(this);
-        regionEvents.setUseWhitelist(getConfig().getBoolean(CONFIG_MINECRAFT_USE_WHITELIST, false));
-        regionEvents.kickOnDiscordLeave = getConfig().getBoolean(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, true);
-        regionEvents.kickOnDiscordLeaveMessage = getConfig().getString(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE, "Not registered.");
-        bot.setDiscordPlayerEventsListener(regionEvents);
-        Bukkit.getPluginManager().registerEvents(regionEvents, this);
+        regionListener = new RegionListener(this, bot, discordChannelFlag);
+        Bukkit.getPluginManager().registerEvents(regionListener, this);
+
+        discordPlayerListener = new DiscordPlayerListener(this, bot, discordChannelFlag);
+        discordPlayerListener.setUseWhitelist(getConfig().getBoolean(CONFIG_MINECRAFT_USE_WHITELIST, false));
+        discordPlayerListener.kickOnDiscordLeave = getConfig().getBoolean(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, true);
+        discordPlayerListener.kickOnDiscordLeaveMessage = getConfig().getString(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE, "Not registered.");
+        bot.setDiscordPlayerEventsListener(discordPlayerListener);
+
+        playerListener = new PlayerListener(bot, discordPlayerListener);
+        Bukkit.getPluginManager().registerEvents(playerListener, this);
 
         String categoryName = getConfig().getString(CONFIG_DISCORD_CATEGORY);
         if (bot.getGuild() != null && categoryName != null) {
@@ -127,9 +157,9 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         c.set(CONFIG_DISCORD_SERVER, bot.getGuild().getIdLong());
         c.set(CONFIG_DISCORD_CATEGORY, bot.getCategory().getName());
         c.set(CONFIG_DISCORD_ENTRY_CHANNEL, bot.getEntryChannel().getName());
-        c.set(CONFIG_MINECRAFT_USE_WHITELIST, regionEvents.getUseWhitelist());
-        c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, regionEvents.kickOnDiscordLeave);
-        c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE, regionEvents.kickOnDiscordLeaveMessage);
+        c.set(CONFIG_MINECRAFT_USE_WHITELIST, discordPlayerListener.getUseWhitelist());
+        c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, discordPlayerListener.kickOnDiscordLeave);
+        c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE, discordPlayerListener.kickOnDiscordLeaveMessage);
         c.set(CONFIG_DISCORD_MIN_MOVE_INTERVAL, bot.playerMinimumMoveInterval);
         super.saveConfig();
     }

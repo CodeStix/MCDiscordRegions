@@ -1,4 +1,4 @@
-package nl.codestix.mcdiscordregions;
+package nl.codestix.mcdiscordregions.event;
 
 import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;

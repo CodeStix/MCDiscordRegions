@@ -10,6 +10,7 @@ import com.sk89q.worldguard.protection.regions.RegionQuery;
 import com.sk89q.worldguard.session.MoveType;
 import com.sk89q.worldguard.session.Session;
 import com.sk89q.worldguard.session.handler.Handler;
+import nl.codestix.mcdiscordregions.event.RegionChangeEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -19,12 +20,10 @@ import java.util.UUID;
 
 public class WorldGuardHandler extends Handler {
 
-    private MCDiscordRegionsPlugin plugin;
     private HashMap<UUID, ProtectedRegion> regionsPerPlayer = new HashMap<>();
 
-    public WorldGuardHandler(MCDiscordRegionsPlugin plugin, Session session) {
+    public WorldGuardHandler(Session session) {
         super(session);
-        this.plugin = plugin;
     }
 
     @Override
@@ -49,15 +48,9 @@ public class WorldGuardHandler extends Handler {
 
     public static class Factory extends Handler.Factory<WorldGuardHandler> {
 
-        private MCDiscordRegionsPlugin plugin;
-
-        public Factory(MCDiscordRegionsPlugin plugin) {
-            this.plugin = plugin;
-        }
-
         @Override
         public WorldGuardHandler create(Session session) {
-            return new WorldGuardHandler(plugin, session);
+            return new WorldGuardHandler(session);
         }
     }
 }

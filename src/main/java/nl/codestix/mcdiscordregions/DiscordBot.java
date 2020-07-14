@@ -10,6 +10,8 @@ import net.dv8tion.jda.api.events.guild.voice.GuildVoiceMoveEvent;
 import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
 import net.dv8tion.jda.api.utils.Compression;
+import nl.codestix.mcdiscordregions.database.DiscordPlayerDatabase;
+import nl.codestix.mcdiscordregions.event.DiscordPlayerEvents;
 import org.apache.commons.lang.NullArgumentException;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -28,16 +30,18 @@ public class DiscordBot implements EventListener {
     private Guild guild;
     private VoiceChannel entryChannel;
 
-    private IDiscordPlayerEvents discordPlayerListener;
-    private IDiscordPlayerDatabase playerDatabase;
+    private DiscordPlayerEvents discordPlayerListener;
+    private DiscordPlayerDatabase playerDatabase;
 
     // To limit player Discord channel moving
     private HashMap<Long, Integer> delayedPlayerMoveTasks = new HashMap<>();
     private HashMap<Long, Long> lastPlayerTryMoveTimes = new HashMap<>();
 
+    private HashMap<UUID, Member> discordPlayers = new HashMap<>();
+
     public int playerMinimumMoveInterval = 1000;
 
-    public DiscordBot(String token, String guildId, IDiscordPlayerDatabase playerDatabase) throws LoginException, InterruptedException
+    public DiscordBot(String token, String guildId, DiscordPlayerDatabase playerDatabase) throws LoginException, InterruptedException
     {
         this.playerDatabase = playerDatabase;
 
@@ -60,7 +64,7 @@ public class DiscordBot implements EventListener {
             throw new NullPointerException("No guild was found.");
     }
 
-    public void setDiscordPlayerEventsListener(IDiscordPlayerEvents listener) {
+    public void setDiscordPlayerEventsListener(DiscordPlayerEvents listener) {
         discordPlayerListener = listener;
     }
 
@@ -123,7 +127,11 @@ public class DiscordBot implements EventListener {
                 categoryMembers.put(id, member);
                 UUID player = playerDatabase.getPlayer(id);
                 if (player != null)
-                    discordPlayerListener.onDiscordPlayerJoin(player, member);
+                {
+                    discordPlayers.put(player, member);
+                    if (discordPlayerListener != null)
+                        discordPlayerListener.onDiscordPlayerJoin(player, member);
+                }
             }
         }
     }
@@ -186,7 +194,11 @@ public class DiscordBot implements EventListener {
         for(Member mem : categoryMembers.values()) {
             UUID player = playerDatabase.getPlayer(mem.getUser().getIdLong());
             if (player != null)
-                discordPlayerListener.onDiscordPlayerLeave(player, mem);
+            {
+                discordPlayers.remove(player);
+                if (discordPlayerListener != null)
+                    discordPlayerListener.onDiscordPlayerLeave(player, mem);
+            }
         }
     }
 
@@ -203,50 +215,56 @@ public class DiscordBot implements EventListener {
             onMemberVoiceMove((GuildVoiceMoveEvent)genericEvent);
     }
 
-    private void memberJoinCategory(Member mem) {
+    private void onMemberJoinCategory(Member mem) {
         long id = mem.getUser().getIdLong();
         categoryMembers.put(id, mem);
         UUID player = playerDatabase.getPlayer(id);
         if (player != null)
-            discordPlayerListener.onDiscordPlayerJoin(player, mem);
+        {
+            discordPlayers.put(player, mem);
+            if (discordPlayerListener != null)
+                discordPlayerListener.onDiscordPlayerJoin(player, mem);
+        }
         // else: needs to register themselves with the Discord bot in private.
     }
 
-    private void memberLeaveCategory(Member mem) {
+    private void onMemberLeaveCategory(Member mem) {
         long id = mem.getUser().getIdLong();
         categoryMembers.remove(id);
         UUID player = playerDatabase.getPlayer(id);
         if (player != null)
-            discordPlayerListener.onDiscordPlayerLeave(player, mem);
+        {
+            discordPlayers.remove(player);
+            if (discordPlayerListener != null)
+                discordPlayerListener.onDiscordPlayerLeave(player, mem);
+        }
     }
 
     private void onMemberVoiceJoin(GuildVoiceJoinEvent event) {
-        if (category != null && event.getChannelJoined().getParent().getIdLong() == category.getIdLong()) { // if joining mc category
-            memberJoinCategory(event.getMember());
+        if (category != null && event.getChannelJoined().getParent() == category) { // if joining mc category
+            onMemberJoinCategory(event.getMember());
         }
     }
 
     private void onMemberVoiceLeave(GuildVoiceLeaveEvent event) {
-        if (category != null && event.getChannelLeft().getParent().getIdLong() == category.getIdLong()) {
-            memberLeaveCategory(event.getMember());
+        if (category != null && event.getChannelLeft().getParent() == category) {
+            onMemberLeaveCategory(event.getMember());
         }
     }
 
     private void onMemberVoiceMove(GuildVoiceMoveEvent event) {
         if (category != null
-            && event.getChannelLeft().getParent().getIdLong() != category.getIdLong()
-            && event.getChannelJoined().getParent().getIdLong() == category.getIdLong()) { // if moved inside mc category
+            && event.getChannelLeft().getParent() != category
+            && event.getChannelJoined().getParent() == category) { // if moved inside mc category
 
-            memberJoinCategory(event.getMember());
+            onMemberJoinCategory(event.getMember());
         }
         else if (category != null
-            && event.getChannelLeft().getParent().getIdLong() == category.getIdLong()
-            && event.getChannelJoined().getParent().getIdLong() != category.getIdLong()) { // if moved outside of mc category
+            && event.getChannelLeft().getParent() == category
+            && event.getChannelJoined().getParent() != category) { // if moved outside of mc category
 
-            memberLeaveCategory(event.getMember());
+            onMemberLeaveCategory(event.getMember());
         }
-
-        // Bukkit.getLogger().warning("Unregistered member got moved into a regions channel, but could not be registered. The user should enter the Entry channel and send their name to the bot in private.");
     }
 
     private void onPrivateMessageReceived(PrivateMessageReceivedEvent event) {
@@ -278,12 +296,16 @@ public class DiscordBot implements EventListener {
             return;
         }
 
-        discordPlayerListener.onDiscordPlayerJoin(playerUUID, member);
+        discordPlayers.put(playerUUID, member);
+        if (discordPlayerListener != null)
+            discordPlayerListener.onDiscordPlayerJoin(playerUUID, member);
 
         message.addReaction("✅").queue();
     }
 
     public void moveNow(Member member, VoiceChannel voiceChannel) {
+        if (member == null || !isInVoiceChannel(member))
+            return;
         guild.moveVoiceMember(member, voiceChannel).queue();
     }
 
@@ -299,6 +321,9 @@ public class DiscordBot implements EventListener {
     }
 
     public void forceMoveDelayed(JavaPlugin scheduleAs, Member member, VoiceChannel voiceChannel) {
+
+        new Exception().printStackTrace(System.out);
+
         GuildVoiceState state = member.getVoiceState();
         if (state == null || !state.inVoiceChannel() || state.getChannel() == voiceChannel)
             return;
@@ -317,5 +342,27 @@ public class DiscordBot implements EventListener {
             delayedPlayerMoveTasks.put(id, Bukkit.getScheduler().scheduleSyncDelayedTask(scheduleAs, () -> moveNow(member, voiceChannel), MOVE_DELAY_TICKS));
         }
         lastPlayerTryMoveTimes.put(id, currentTime);
+    }
+
+    public Map<UUID, Member> getCurrentDiscordPlayers() {
+        return discordPlayers;
+    }
+
+    public Member getMember(UUID player) {
+        return discordPlayers.get(player);
+    }
+
+    public void movePlayerToEntry(UUID player) {
+        moveNow(getMember(player), entryChannel);
+    }
+
+    public void muteMember(Member member, boolean mute) {
+        if (member == null || !isInVoiceChannel(member))
+            return;
+        member.mute(mute).queue();
+    }
+
+    public void muteMember(UUID player, boolean mute) {
+        muteMember(getMember(player), mute);
     }
 }

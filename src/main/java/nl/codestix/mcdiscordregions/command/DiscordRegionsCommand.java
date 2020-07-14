@@ -1,10 +1,11 @@
-package nl.codestix.mcdiscordregions;
+package nl.codestix.mcdiscordregions.command;
 
 import net.dv8tion.jda.api.entities.Category;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.exceptions.PermissionException;
+import nl.codestix.mcdiscordregions.MCDiscordRegionsPlugin;
 import org.apache.commons.lang.NullArgumentException;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -66,30 +67,30 @@ public class DiscordRegionsCommand implements CommandExecutor
             commandSender.sendMessage("§6Server:§f " + (guild == null ? "<not set>" : guild.getName()));
             commandSender.sendMessage("§6Category:§f " + (category == null ? "<not set>" : category.getName()));
             commandSender.sendMessage("§6Entry channel:§f " + (entryChannel == null ? "<not set>" : entryChannel.getName()));
-            commandSender.sendMessage("§dWhitelist: " + (plugin.regionEvents.getUseWhitelist() ? "§aon" : "§coff"));
-            commandSender.sendMessage("§dKick on Discord leave: " + (plugin.regionEvents.kickOnDiscordLeave ? "§aon" : "§coff"));
-            if (plugin.regionEvents.kickOnDiscordLeave)
-                commandSender.sendMessage("§dKick on Discord leave message: §f" + plugin.regionEvents.kickOnDiscordLeaveMessage);
+            commandSender.sendMessage("§dWhitelist: " + (plugin.discordPlayerListener.getUseWhitelist() ? "§aon" : "§coff"));
+            commandSender.sendMessage("§dKick on Discord leave: " + (plugin.discordPlayerListener.kickOnDiscordLeave ? "§aon" : "§coff"));
+            if (plugin.discordPlayerListener.kickOnDiscordLeave)
+                commandSender.sendMessage("§dKick on Discord leave message: §f" + plugin.discordPlayerListener.kickOnDiscordLeaveMessage);
             return true;
         }
         else if (strings.length >= 1 && strings[0].equalsIgnoreCase("whitelist")) {
             if (strings.length >= 2) {
                 boolean useWhitelist = strings[1].equalsIgnoreCase("on");
-                plugin.regionEvents.setUseWhitelist(useWhitelist);
+                plugin.discordPlayerListener.setUseWhitelist(useWhitelist);
             }
-            commandSender.sendMessage("§dDiscord Regions' whitelist is " + (plugin.regionEvents.getUseWhitelist() ? "§aon" : "§coff"));
+            commandSender.sendMessage("§dDiscord Regions' whitelist is " + (plugin.discordPlayerListener.getUseWhitelist() ? "§aon" : "§coff"));
             return true;
         }
         else if (strings.length >= 1 && strings[0].equalsIgnoreCase("kickOnDiscordLeave")) {
             if (strings.length >= 2) {
-                plugin.regionEvents.kickOnDiscordLeave = strings[1].equalsIgnoreCase("on");
+                plugin.discordPlayerListener.kickOnDiscordLeave = strings[1].equalsIgnoreCase("on");
             }
-            commandSender.sendMessage("§dKick on discord leave is " + (plugin.regionEvents.kickOnDiscordLeave ? "§aon" : "§coff"));
+            commandSender.sendMessage("§dKick on discord leave is " + (plugin.discordPlayerListener.kickOnDiscordLeave ? "§aon" : "§coff"));
 
             if (strings.length >= 3) {
-                plugin.regionEvents.kickOnDiscordLeaveMessage = join(" ", 2, strings);
+                plugin.discordPlayerListener.kickOnDiscordLeaveMessage = join(" ", 2, strings);
             }
-            commandSender.sendMessage("§dKick on discord leave message is: §f" + plugin.regionEvents.kickOnDiscordLeaveMessage);
+            commandSender.sendMessage("§dKick on discord leave message is: §f" + plugin.discordPlayerListener.kickOnDiscordLeaveMessage);
             return true;
         }
         else if (strings.length >= 2 && strings[0].equalsIgnoreCase("category")) {

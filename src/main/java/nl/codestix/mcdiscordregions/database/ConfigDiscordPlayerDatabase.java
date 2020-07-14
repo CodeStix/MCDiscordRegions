@@ -1,4 +1,4 @@
-package nl.codestix.mcdiscordregions;
+package nl.codestix.mcdiscordregions.database;
 
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
@@ -8,7 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-public class ConfigDiscordPlayerDatabase implements IDiscordPlayerDatabase {
+public class ConfigDiscordPlayerDatabase implements DiscordPlayerDatabase {
 
     private YamlConfiguration config;
     private File file;

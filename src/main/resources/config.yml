@@ -14,7 +14,5 @@ discord:
   server: null
   # The name of the discord channel category to use with this plugin, channels will be created in this category if enabled.
   category: Minecraft Regions
-  # When true, the bot will automatically create a new voice channel when a new WorldGuard region was entered.
-  auto-create-channels: true
   # The name of the Entry channel, this is the name of the channel where players should join to use the system.
   entry-channel-name: Entry

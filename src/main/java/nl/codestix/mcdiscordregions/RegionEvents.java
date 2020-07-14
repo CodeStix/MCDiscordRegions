@@ -168,15 +168,10 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
         }
 
         VoiceChannel vc = plugin.bot.getChannelByName(channelName);
-        if (vc == null) {
-            if (plugin.bot.allowCreateNewChannel)
-                plugin.bot.createChannel(channelName, nvc -> forceMoveDelayed(member, nvc));
-            else
-                forceMoveDelayed(member, plugin.bot.getEntryChannel());
-        }
-        else {
+        if (vc == null)
+            plugin.bot.createChannel(channelName, nvc -> forceMoveDelayed(member, nvc));
+        else
             forceMoveDelayed(member, vc);
-        }
     }
 
     @EventHandler
@@ -199,16 +194,11 @@ public class RegionEvents implements Listener, IDiscordPlayerEvents {
         VoiceChannel vc = plugin.bot.getChannelByName(channelName);
         if (vc == null)
         {
-            if (plugin.bot.allowCreateNewChannel) {
-                plugin.bot.createChannel(channelName, c -> {
-                    if (c != null)
-                        plugin.getLogger().info("Created new voice channel");
-                });
-                event.setCancelled(true); // cancel until channel is created
-            }
-            else {
-                Bukkit.getLogger().warning("Player entered region but no Discord channel was available (and channel creation is disallowed): " + channelName);
-            }
+            plugin.bot.createChannel(channelName, c -> {
+                if (c != null)
+                    plugin.getLogger().info("Created new voice channel");
+            });
+            event.setCancelled(true); // cancel until channel is created
             return;
         }
 

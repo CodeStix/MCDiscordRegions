@@ -22,7 +22,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     private static final String CONFIG_DISCORD_SERVER = "discord.server";
     private static final String CONFIG_DISCORD_CATEGORY = "discord.category";
     private static final String CONFIG_DISCORD_ENTRY_CHANNEL = "discord.entry-channel-name";
-    private static final String CONFIG_DISCORD_AUTO_CREATE_CHANNELS = "discord.auto-create-channels";
     private static final String CONFIG_MINECRAFT_USE_WHITELIST = "minecraft.use-whitelist";
     private static final String CONFIG_MINECRAFT_KICK_DISCORD_LEAVE = "minecraft.kick-on-discord-leave";
     private static final String CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE = "minecraft.kick-on-discord-leave-message";
@@ -75,8 +74,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             return;
         }
 
-        bot.allowCreateNewChannel = getConfig().getBoolean(CONFIG_DISCORD_AUTO_CREATE_CHANNELS, true);
-
         regionEvents = new RegionEvents(this);
         regionEvents.setUseWhitelist(getConfig().getBoolean(CONFIG_MINECRAFT_USE_WHITELIST, false));
         regionEvents.kickOnDiscordLeave = getConfig().getBoolean(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, true);
@@ -127,7 +124,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         c.set(CONFIG_DISCORD_SERVER, bot.getGuild().getIdLong());
         c.set(CONFIG_DISCORD_CATEGORY, bot.getCategory().getName());
         c.set(CONFIG_DISCORD_ENTRY_CHANNEL, bot.getEntryChannel().getName());
-        c.set(CONFIG_DISCORD_AUTO_CREATE_CHANNELS, bot.allowCreateNewChannel);
         c.set(CONFIG_MINECRAFT_USE_WHITELIST, regionEvents.getUseWhitelist());
         c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, regionEvents.kickOnDiscordLeave);
         c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE, regionEvents.kickOnDiscordLeaveMessage);

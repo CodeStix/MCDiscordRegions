@@ -63,12 +63,10 @@ public class DiscordRegionsCommand implements CommandExecutor
             }
 
             commandSender.sendMessage("§dDiscord information:");
-            commandSender.sendMessage("§6Server:§f " + (guild == null ? "<not set>" : (guild.getName() + "(" + guild.getIdLong() + ")")));
-            commandSender.sendMessage("§6Category:§f " + (category == null ? "<not set>" : (category.getName() + "(" + category.getIdLong() + ")")));
-            commandSender.sendMessage("§6Entry channel:§f " + (entryChannel == null ? "<not set>" : (entryChannel.getName() + "(" + entryChannel.getIdLong() + ")")));
-
+            commandSender.sendMessage("§6Server:§f " + (guild == null ? "<not set>" : guild.getName()));
+            commandSender.sendMessage("§6Category:§f " + (category == null ? "<not set>" : category.getName()));
+            commandSender.sendMessage("§6Entry channel:§f " + (entryChannel == null ? "<not set>" : entryChannel.getName()));
             commandSender.sendMessage("§dWhitelist: " + (plugin.regionEvents.getUseWhitelist() ? "§aon" : "§coff"));
-            commandSender.sendMessage("§dAutomatic channel creation: " + (plugin.bot.allowCreateNewChannel ? "§aon" : "§coff"));
             commandSender.sendMessage("§dKick on Discord leave: " + (plugin.regionEvents.kickOnDiscordLeave ? "§aon" : "§coff"));
             if (plugin.regionEvents.kickOnDiscordLeave)
                 commandSender.sendMessage("§dKick on Discord leave message: §f" + plugin.regionEvents.kickOnDiscordLeaveMessage);
@@ -80,13 +78,6 @@ public class DiscordRegionsCommand implements CommandExecutor
                 plugin.regionEvents.setUseWhitelist(useWhitelist);
             }
             commandSender.sendMessage("§dDiscord Regions' whitelist is " + (plugin.regionEvents.getUseWhitelist() ? "§aon" : "§coff"));
-            return true;
-        }
-        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("autoCreateChannel")) {
-            if (strings.length >= 2) {
-                plugin.bot.allowCreateNewChannel = strings[1].equalsIgnoreCase("on");
-            }
-            commandSender.sendMessage("§dDiscord automatic channel creation is " + (plugin.bot.allowCreateNewChannel ? "§aon" : "§coff"));
             return true;
         }
         else if (strings.length >= 1 && strings[0].equalsIgnoreCase("kickOnDiscordLeave")) {

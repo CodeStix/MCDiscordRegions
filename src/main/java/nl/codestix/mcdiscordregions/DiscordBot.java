@@ -30,8 +30,6 @@ public class DiscordBot implements EventListener {
     private IDiscordPlayerEvents discordPlayerListener;
     private IDiscordPlayerDatabase playerDatabase;
 
-    public boolean allowCreateNewChannel = true;
-
     public DiscordBot(String token, String guildId, IDiscordPlayerDatabase playerDatabase) throws LoginException, InterruptedException
     {
         this.playerDatabase = playerDatabase;
@@ -59,25 +57,6 @@ public class DiscordBot implements EventListener {
         discordPlayerListener = listener;
     }
 
-    /*public void setGuild(String guildId) {
-        setGuild(bot.getGuildById(guildId));
-    }
-
-    public void setGuild(Guild guild) {
-        if (guild == null)
-            throw new NullArgumentException("Guild is null.");
-        this.category = null;
-        this.entryChannel = null;
-        this.categoryMembers.clear();
-        this.channels.clear();
-        this.guild = guild;
-    }
-
-    public Guild getFirstGuild() {
-        List<Guild> guilds = bot.getGuilds();
-        return guilds.size() <= 0 ? null : guilds.get(0);
-    }*/
-
     public Guild getGuild() {
         return guild;
     }
@@ -85,17 +64,12 @@ public class DiscordBot implements EventListener {
     public void getCategoryByNameOrCreate(String name, Consumer<Category> callback) {
         Category category = getCategoryByName(name);
         if (category == null)
-            guild.createCategory(name).queue(c ->  {
-                callback.accept(c);
-            });
+            guild.createCategory(name).queue(callback);
         else
             callback.accept(category);
     }
 
     public void createChannel(String name, Consumer<VoiceChannel> callback) {
-        if (!allowCreateNewChannel)
-            throw new IllegalStateException("Not allowed to create channels.");
-
         category.createVoiceChannel(name).queue(vc -> {
             updateChannelCache();
             callback.accept(vc);

@@ -8,6 +8,6 @@ import java.util.UUID;
  * Events that fire when a registered (= bound with minecraft ign) Discord member joins or leaves the Minecraft regions category.
  */
 public interface IDiscordPlayerEvents {
-    boolean onDiscordPlayerLeave(UUID playerId, Member channelMember);
+    void onDiscordPlayerLeave(UUID playerId, Member channelMember);
     void onDiscordPlayerJoin(UUID playerId, Member channelMember);
 }

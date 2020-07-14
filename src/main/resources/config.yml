@@ -16,3 +16,7 @@ discord:
   category: Minecraft Regions
   # The name of the Entry channel, this is the name of the channel where players should join to use the system.
   entry-channel-name: Entry
+
+  # Each player can only be moved to a Discord channel each x milliseconds. (minimum time between moves)
+  min-move-interval: 1000
+

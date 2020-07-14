@@ -25,6 +25,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     private static final String CONFIG_MINECRAFT_USE_WHITELIST = "minecraft.use-whitelist";
     private static final String CONFIG_MINECRAFT_KICK_DISCORD_LEAVE = "minecraft.kick-on-discord-leave";
     private static final String CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE = "minecraft.kick-on-discord-leave-message";
+    private static final String CONFIG_DISCORD_MIN_MOVE_INTERVAL = "discord.min-move-interval";
 
     public StringFlag discordChannelFlag = new StringFlag("discord-channel");
     private WorldGuardHandler.Factory worldGuardHandlerFactory;
@@ -73,6 +74,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             getPluginLoader().disablePlugin(this);
             return;
         }
+
+        bot.playerMinimumMoveInterval = getConfig().getInt(CONFIG_DISCORD_MIN_MOVE_INTERVAL, bot.playerMinimumMoveInterval);
 
         regionEvents = new RegionEvents(this);
         regionEvents.setUseWhitelist(getConfig().getBoolean(CONFIG_MINECRAFT_USE_WHITELIST, false));
@@ -127,6 +130,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         c.set(CONFIG_MINECRAFT_USE_WHITELIST, regionEvents.getUseWhitelist());
         c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, regionEvents.kickOnDiscordLeave);
         c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE, regionEvents.kickOnDiscordLeaveMessage);
+        c.set(CONFIG_DISCORD_MIN_MOVE_INTERVAL, bot.playerMinimumMoveInterval);
         super.saveConfig();
     }
 }

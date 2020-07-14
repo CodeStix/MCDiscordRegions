@@ -9,10 +9,10 @@ import net.dv8tion.jda.api.events.guild.voice.GuildVoiceLeaveEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceMoveEvent;
 import net.dv8tion.jda.api.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.EventListener;
-import net.dv8tion.jda.api.requests.restaction.ChannelAction;
 import net.dv8tion.jda.api.utils.Compression;
 import org.apache.commons.lang.NullArgumentException;
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import javax.security.auth.login.LoginException;
 import java.util.*;
@@ -27,8 +27,15 @@ public class DiscordBot implements EventListener {
     private HashMap<Long, Member> categoryMembers = new HashMap<>();
     private Guild guild;
     private VoiceChannel entryChannel;
+
     private IDiscordPlayerEvents discordPlayerListener;
     private IDiscordPlayerDatabase playerDatabase;
+
+    // To limit player Discord channel moving
+    private HashMap<Long, Integer> delayedPlayerMoveTasks = new HashMap<>();
+    private HashMap<Long, Long> lastPlayerTryMoveTimes = new HashMap<>();
+
+    public int playerMinimumMoveInterval = 1000;
 
     public DiscordBot(String token, String guildId, IDiscordPlayerDatabase playerDatabase) throws LoginException, InterruptedException
     {
@@ -276,7 +283,39 @@ public class DiscordBot implements EventListener {
         message.addReaction("✅").queue();
     }
 
-    public void move(Member member, VoiceChannel voiceChannel) {
+    public void moveNow(Member member, VoiceChannel voiceChannel) {
         guild.moveVoiceMember(member, voiceChannel).queue();
+    }
+
+    public boolean tryMoveDelayed(JavaPlugin scheduleAs, Member member, VoiceChannel voiceChannel) {
+        int userLimit = voiceChannel.getUserLimit();
+        if (userLimit == 0 || voiceChannel.getMembers().size() < userLimit) {
+            forceMoveDelayed(scheduleAs, member, voiceChannel);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    public void forceMoveDelayed(JavaPlugin scheduleAs, Member member, VoiceChannel voiceChannel) {
+        GuildVoiceState state = member.getVoiceState();
+        if (state == null || !state.inVoiceChannel() || state.getChannel() == voiceChannel)
+            return;
+        long id = member.getIdLong();
+        long currentTime = System.currentTimeMillis();
+        Long l = lastPlayerTryMoveTimes.get(id);
+        if (l == null || currentTime - l > playerMinimumMoveInterval) {
+            // move instantly
+            moveNow(member, voiceChannel);
+        }
+        else {
+            // delay the move
+            final int MOVE_DELAY_TICKS = 17; // ~20 ticks per second
+            if (delayedPlayerMoveTasks.containsKey(id))
+                Bukkit.getScheduler().cancelTask(delayedPlayerMoveTasks.get(id));
+            delayedPlayerMoveTasks.put(id, Bukkit.getScheduler().scheduleSyncDelayedTask(scheduleAs, () -> moveNow(member, voiceChannel), MOVE_DELAY_TICKS));
+        }
+        lastPlayerTryMoveTimes.put(id, currentTime);
     }
 }

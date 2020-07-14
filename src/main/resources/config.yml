@@ -20,3 +20,5 @@ discord:
   # Each player can only be moved to a Discord channel each x milliseconds. (minimum time between moves)
   min-move-interval: 1000
 
+# When false, you have to use '/dregion save' to manually save settings to config.
+auto-save-config: true

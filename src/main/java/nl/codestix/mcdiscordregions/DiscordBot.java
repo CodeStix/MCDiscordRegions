@@ -89,8 +89,7 @@ public class DiscordBot implements EventListener {
 
     public Category getCategoryByName(String name) {
         List<Category> categories = guild.getCategories();
-        for(int i = 0; i < categories.size(); i++) {
-            Category c = categories.get(i);
+        for (Category c : categories) {
             if (c.getName().equalsIgnoreCase(name))
                 return c;
         }
@@ -134,6 +133,13 @@ public class DiscordBot implements EventListener {
                 }
             }
         }
+    }
+
+    public void deleteCategory() {
+        for(VoiceChannel channel : channels.values())
+            channel.delete().queue();
+        category.delete().queue();
+        setCategory(null);
     }
 
     public void updateChannelCache() {  // Cache channels by name
@@ -180,6 +186,10 @@ public class DiscordBot implements EventListener {
 
     public HashMap<String, VoiceChannel> getChannels() {
         return channels;
+    }
+
+    public int getChannelCount() {
+        return channels.size();
     }
 
     public void destroy() {
@@ -321,9 +331,6 @@ public class DiscordBot implements EventListener {
     }
 
     public void forceMoveDelayed(JavaPlugin scheduleAs, Member member, VoiceChannel voiceChannel) {
-
-        new Exception().printStackTrace(System.out);
-
         GuildVoiceState state = member.getVoiceState();
         if (state == null || !state.inVoiceChannel() || state.getChannel() == voiceChannel)
             return;

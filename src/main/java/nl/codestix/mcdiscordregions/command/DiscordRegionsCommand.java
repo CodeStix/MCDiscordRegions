@@ -73,6 +73,17 @@ public class DiscordRegionsCommand implements CommandExecutor
                 commandSender.sendMessage("§dKick on Discord leave message: §f" + plugin.discordPlayerListener.kickOnDiscordLeaveMessage);
             return true;
         }
+        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("deletecategory")) {
+            if (strings.length == 1 || !strings[1].equalsIgnoreCase("confirm")) {
+                commandSender.sendMessage(String.format("§dAre you sure you want to delete category §f%s§d and §f%d§d channels in it? " +
+                        "Use '/%s %s confirm' to confirm.", plugin.bot.getCategory().getName(), plugin.bot.getChannelCount(), s, strings[0]));
+            }
+            else {
+                commandSender.sendMessage("§dRemoving category and channels...");
+                plugin.bot.deleteCategory();
+            }
+            return true;
+        }
         else if (strings.length >= 1 && strings[0].equalsIgnoreCase("whitelist")) {
             if (strings.length >= 2) {
                 boolean useWhitelist = strings[1].equalsIgnoreCase("on");
@@ -98,20 +109,25 @@ public class DiscordRegionsCommand implements CommandExecutor
             try {
                 plugin.bot.getCategoryByNameOrCreate(categoryName, category -> {
                     plugin.bot.setCategory(category);
-                    commandSender.sendMessage(String.format("§dCategory '%s' is now the active category.", categoryName));
+                    commandSender.sendMessage(String.format("§dCategory §f%s§d is now the active category.", categoryName));
                 });
             } catch(PermissionException ex) {
                 commandSender.sendMessage("§cCould not set category due to permissions: " + ex.getMessage());
             } catch (NullArgumentException ex) {
-                commandSender.sendMessage(String.format("§cThe specified category '%s' was not found.", categoryName));
+                commandSender.sendMessage(String.format("§cThe specified category §f%s§d was not found.", categoryName));
             }
             return true;
         }
         else if (strings.length >= 2 && strings[0].equalsIgnoreCase("entry")) {
             String entryChannelName = join(" ", 1, strings);
+            if (plugin.bot.getCategory() == null) {
+                commandSender.sendMessage("§cCannot set entry channel, the Discord category must be configured first with §f/dregion category your_category_name§c.");
+                return true;
+            }
+
             try {
                 plugin.bot.setEntryChannel(entryChannelName, true);
-                commandSender.sendMessage(String.format("§dEntry channel name is now set to '%s'.", entryChannelName));
+                commandSender.sendMessage(String.format("§dEntry channel name is now set to §f%s§d.", entryChannelName));
             } catch(PermissionException ex) {
                 commandSender.sendMessage("§cCould not set entry channel name due to permissions: " + ex.getMessage());
             } catch (NullArgumentException ex) {

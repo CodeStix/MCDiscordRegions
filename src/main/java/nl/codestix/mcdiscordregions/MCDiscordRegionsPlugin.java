@@ -35,9 +35,11 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     private static final String CONFIG_MINECRAFT_KICK_DISCORD_LEAVE = "minecraft.kick-on-discord-leave";
     private static final String CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE = "minecraft.kick-on-discord-leave-message";
     private static final String CONFIG_DISCORD_MIN_MOVE_INTERVAL = "discord.min-move-interval";
+    private static final String CONFIG_AUTO_SAVE = "auto-save-config";
 
-    public StringFlag discordChannelFlag = new StringFlag("discord-channel");
+    private StringFlag discordChannelFlag = new StringFlag("discord-channel");
     private WorldGuardHandler.Factory worldGuardHandlerFactory;
+    private boolean configAutoSave;
 
     private static MCDiscordRegionsPlugin instance;
 
@@ -60,6 +62,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         instance = this;
 
         saveDefaultConfig();
+        configAutoSave = getConfig().getBoolean(CONFIG_AUTO_SAVE, true);
 
         worldGuardHandlerFactory = new WorldGuardHandler.Factory();
         WorldGuard.getInstance().getPlatform().getSessionManager().registerHandler(worldGuardHandlerFactory, null);
@@ -135,8 +138,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (bot != null)
-        {
+        if (bot != null) {
             bot.letAllCategoryPlayersLeave();
             bot.destroy();
         }
@@ -147,20 +149,26 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
                 getLogger().warning("Could not save players.yml: " + ex);
             }
         }
-
+        if (configAutoSave)
+            saveConfig();
         WorldGuard.getInstance().getPlatform().getSessionManager().unregisterHandler(worldGuardHandlerFactory);
     }
 
     @Override
     public void saveConfig() {
         FileConfiguration c = getConfig();
-        c.set(CONFIG_DISCORD_SERVER, bot.getGuild().getIdLong());
-        c.set(CONFIG_DISCORD_CATEGORY, bot.getCategory().getName());
-        c.set(CONFIG_DISCORD_ENTRY_CHANNEL, bot.getEntryChannel().getName());
-        c.set(CONFIG_MINECRAFT_USE_WHITELIST, discordPlayerListener.getUseWhitelist());
-        c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, discordPlayerListener.kickOnDiscordLeave);
-        c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE, discordPlayerListener.kickOnDiscordLeaveMessage);
-        c.set(CONFIG_DISCORD_MIN_MOVE_INTERVAL, bot.playerMinimumMoveInterval);
+        if (bot != null) {
+            c.set(CONFIG_DISCORD_SERVER, bot.getGuild() == null ? null : bot.getGuild().getIdLong());
+            c.set(CONFIG_DISCORD_CATEGORY, bot.getCategory() == null ? null : bot.getCategory().getName());
+            c.set(CONFIG_DISCORD_ENTRY_CHANNEL, bot.getEntryChannel() == null ? null : bot.getEntryChannel().getName());
+            c.set(CONFIG_DISCORD_MIN_MOVE_INTERVAL, bot.playerMinimumMoveInterval);
+        }
+        if (discordPlayerListener != null) {
+            c.set(CONFIG_MINECRAFT_USE_WHITELIST, discordPlayerListener.getUseWhitelist());
+            c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE, discordPlayerListener.kickOnDiscordLeave);
+            c.set(CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE, discordPlayerListener.kickOnDiscordLeaveMessage);
+        }
+        c.set(CONFIG_AUTO_SAVE, configAutoSave);
         super.saveConfig();
     }
 }

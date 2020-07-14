@@ -39,7 +39,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
 
     private StringFlag discordChannelFlag = new StringFlag("discord-channel");
     private WorldGuardHandler.Factory worldGuardHandlerFactory;
-    private boolean configAutoSave;
+    private boolean configAutoSave = false;
 
     private static MCDiscordRegionsPlugin instance;
 
@@ -57,12 +57,12 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             discordChannelFlag = (StringFlag)f;
     }
 
+
     @Override
     public void onEnable() {
         instance = this;
 
         saveDefaultConfig();
-        configAutoSave = getConfig().getBoolean(CONFIG_AUTO_SAVE, true);
 
         worldGuardHandlerFactory = new WorldGuardHandler.Factory();
         WorldGuard.getInstance().getPlatform().getSessionManager().registerHandler(worldGuardHandlerFactory, null);
@@ -132,6 +132,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         }
 
         getCommand("dregion").setExecutor(new DiscordRegionsCommand(this));
+
+        configAutoSave = getConfig().getBoolean(CONFIG_AUTO_SAVE, true);
 
         getLogger().info("Is configured correctly!");
     }

@@ -290,19 +290,19 @@ public class DiscordBot implements EventListener {
         }*/
 
         String playerName = message.getContentRaw();
-        if (!MojangAPI.isValidName(playerName)) {
-            message.addReaction("❌").queue(); // not a valid name
+        if (!MojangAPI.isValidName(playerName)) { // invalid name
+            message.getPrivateChannel().sendMessage("❌ That is not a valid Minecraft name.").queue();
             return;
         }
 
         UUID playerUUID = MojangAPI.playerNameToUUID(playerName);
-        if (playerUUID == null) {
-            message.addReaction("❌").queue(); // player not found
+        if (playerUUID == null) { // player name not found
+            message.getPrivateChannel().sendMessage("❌ That player name was not found.").queue();
             return;
         }
 
-        if (!playerDatabase.putPlayer(member.getUser().getIdLong(), playerUUID)) {
-            message.addReaction("❌").queue();
+        if (!playerDatabase.putPlayer(member.getUser().getIdLong(), playerUUID)) { // database returns false
+            message.getPrivateChannel().sendMessage("❌ You don't have the permission!").queue();
             return;
         }
 

@@ -57,7 +57,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             discordChannelFlag = (StringFlag)f;
     }
 
-
     @Override
     public void onEnable() {
         instance = this;

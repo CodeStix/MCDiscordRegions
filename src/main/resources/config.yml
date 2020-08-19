@@ -10,12 +10,13 @@ minecraft:
 discord:
   # Your discord bot token, must be filled in.
   token: null
-  # Id of the server to use, when left null, will choose the first server the bot is in.
-  server: null
   # The name of the discord channel category to use with this plugin, channels will be created in this category if enabled.
   category: Minecraft Regions
   # The name of the Entry channel, this is the name of the channel where players should join to use the system.
   entry-channel-name: Entry
+
+  # Id of the server to use, when left null, will choose the first server the bot is in (recommended).
+  server: null
 
   # Each player can only be moved to a Discord channel each x milliseconds. (minimum time between moves)
   min-move-interval: 1000

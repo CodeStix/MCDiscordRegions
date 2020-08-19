@@ -138,8 +138,6 @@ public class DiscordBot implements EventListener {
         this.category = category;
         updateChannelCache();
         updateMemberCache();
-
-        // TODO: set category permissions
     }
 
     public void updateMemberCache() { // Cache members by user id

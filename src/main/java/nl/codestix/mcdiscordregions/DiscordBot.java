@@ -2,6 +2,7 @@ package nl.codestix.mcdiscordregions;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.GenericEvent;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceJoinEvent;
@@ -29,6 +30,12 @@ public class DiscordBot implements EventListener {
     private HashMap<Long, Member> categoryMembers = new HashMap<>();
     private Guild guild;
     private VoiceChannel entryChannel;
+
+    public List<Permission> botAllowPermissions = Arrays.asList(Permission.VOICE_MOVE_OTHERS, Permission.VOICE_MUTE_OTHERS, Permission.VOICE_CONNECT, Permission.VIEW_CHANNEL);
+    public List<Permission> channelAllowPermissions = Arrays.asList(Permission.VOICE_SPEAK);
+    public List<Permission> channelDenyPermissions = Arrays.asList(Permission.VOICE_CONNECT, Permission.VIEW_CHANNEL, Permission.VOICE_STREAM);
+    public List<Permission> entryChannelAllowPermissions = Arrays.asList(Permission.VOICE_CONNECT, Permission.VIEW_CHANNEL);
+    public List<Permission> entryChannelDenyPermissions = Arrays.asList(Permission.VOICE_SPEAK, Permission.VOICE_STREAM);
 
     private DiscordPlayerEvents discordPlayerListener;
     private DiscordPlayerDatabase playerDatabase;
@@ -64,6 +71,14 @@ public class DiscordBot implements EventListener {
             throw new NullPointerException("No guild was found.");
     }
 
+    private Role getBotRole() {
+         List<Role> roles = bot.getRolesByName(bot.getSelfUser().getName(), false);
+         if (roles.size() < 1) {
+             throw new IndexOutOfBoundsException("getBotRole has no roles!");
+         }
+         return roles.get(0);
+    }
+
     public void setDiscordPlayerEventsListener(DiscordPlayerEvents listener) {
         discordPlayerListener = listener;
     }
@@ -80,8 +95,19 @@ public class DiscordBot implements EventListener {
             callback.accept(category);
     }
 
-    public void createChannel(String name, Consumer<VoiceChannel> callback) {
-        category.createVoiceChannel(name).queue(vc -> {
+    public void createNormalChannel(String name, Consumer<VoiceChannel> callback) {
+        createChannel(name, channelAllowPermissions, channelDenyPermissions, callback);
+    }
+
+    public void createEntryChannel(String name, Consumer<VoiceChannel> callback) {
+        createChannel(name, entryChannelAllowPermissions, entryChannelDenyPermissions, callback);
+    }
+
+    private void createChannel(String name, List<Permission> allow, List<Permission> deny, Consumer<VoiceChannel> callback) {
+        category.createVoiceChannel(name)
+                .addRolePermissionOverride(guild.getPublicRole().getIdLong(), allow, deny)
+                .addRolePermissionOverride(getBotRole().getIdLong(), botAllowPermissions, new ArrayList<>())
+                .queue(vc -> {
             updateChannelCache();
             callback.accept(vc);
         });
@@ -165,9 +191,8 @@ public class DiscordBot implements EventListener {
             entryChannel = channels.get(entryChannelName);
         }
         else {
-            category.createVoiceChannel(entryChannelName).queue(c -> {
+            createEntryChannel(entryChannelName, c -> {
                 entryChannel = c;
-                updateChannelCache();
             });
         }
     }

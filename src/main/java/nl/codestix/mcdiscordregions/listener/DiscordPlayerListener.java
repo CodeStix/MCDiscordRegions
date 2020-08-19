@@ -82,7 +82,7 @@ public class DiscordPlayerListener implements DiscordPlayerEvents {
 
         VoiceChannel vc = bot.getChannelByName(channelName);
         if (vc == null)
-            bot.createChannel(channelName, nvc -> bot.forceMoveDelayed(plugin, member, nvc));
+            bot.createNormalChannel(channelName, nvc -> bot.forceMoveDelayed(plugin, member, nvc));
         else
             bot.forceMoveDelayed(plugin, member, vc);
     }

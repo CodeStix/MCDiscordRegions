@@ -41,7 +41,7 @@ public class RegionListener implements Listener {
 
         VoiceChannel vc = bot.getChannelByName(channelName);
         if (vc == null) {
-            bot.createChannel(channelName, c -> {
+            bot.createNormalChannel(channelName, c -> {
                 plugin.getLogger().info("Created new voice channel");
                 bot.forceMoveDelayed(plugin, member, c);
             });

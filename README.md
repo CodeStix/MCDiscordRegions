@@ -4,7 +4,7 @@ This bukkit plugin allows you to connect your minecraft server to Discord. By en
 
 ## Installation
 
-1. Download [**MCDiscordRegions-x.x.jar**](https://github.com/CodeStix/MCDiscordRegions/releases/latest), [**worldedit-bukkit-x.x.x.jar**](https://dev.bukkit.org/projects/worldedit) and [**worldguard-bukkit-x.x.x.jar**](https://dev.bukkit.org/projects/worldguard).
+1. Download [**MCDiscordRegions-x.x.jar**](https://github.com/CodeStix/MCDiscordRegions/releases/latest) ([**WorldEdit**](https://dev.bukkit.org/projects/worldedit) and [**WorldGuard**](https://dev.bukkit.org/projects/worldguard) are also required).
 2. Place the downloaded jar files in the `plugins/` directory of your server.
 3. Reload the server. (This will create the config.yml of this plugin)
 4. Register a discord bot for your minecraft server at https://discord.com/developers/applications, and copy the _TOKEN_.

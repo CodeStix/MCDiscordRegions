@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.exceptions.PermissionException;
 import nl.codestix.mcdiscordregions.MCDiscordRegionsPlugin;
 import org.apache.commons.lang.NullArgumentException;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -134,6 +135,35 @@ public class DiscordRegionsCommand implements CommandExecutor
                 commandSender.sendMessage("§c" + ex.getMessage());
             }
             return true;
+        }
+        else if (strings.length >= 2 && strings[0].equalsIgnoreCase("limit")) {
+            String userLimitString = strings[1];
+            String channelName = join(" ", 2, strings);
+
+            int userLimit;
+            try {
+                userLimit = Integer.parseInt(userLimitString);
+            }
+            catch(NumberFormatException ex) {
+                commandSender.sendMessage("§cInvalid user limit number '" + userLimitString + "'");
+                return true;
+            }
+
+            if (userLimit < 0 || userLimit > 100) {
+                commandSender.sendMessage("§cUser limit is too low or too high!");
+                return true;
+            }
+
+            VoiceChannel channel = plugin.bot.getChannelByName(channelName);
+            if (channel == null)
+            {
+                commandSender.sendMessage(String.format("§cChannel with name '%s' not found.", channelName));
+                return true;
+            }
+
+            channel.getManager().setUserLimit(userLimit).queue((a) -> {
+                commandSender.sendMessage(String.format("§dUser limit was set to %d for channel '%s'.", userLimit, channelName));
+            });
         }
         else if (strings.length >= 1 && strings[0].equalsIgnoreCase("db")) {
             commandSender.sendMessage(String.format("§dThere are §f%d/%d§d registered Discord players in the database. ", plugin.playerDatabase.getPlayerCount(), plugin.playerDatabase.maxPlayers));

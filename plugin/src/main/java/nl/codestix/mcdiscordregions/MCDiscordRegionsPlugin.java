@@ -11,20 +11,25 @@ import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 public class MCDiscordRegionsPlugin extends JavaPlugin {
 
     public RegionListener regionListener;
     public PlayerListener playerListener;
 
-    private static final String CONFIG_DISCORD_CATEGORY = "discord.category";
-    private static final String CONFIG_DISCORD_ENTRY_CHANNEL = "discord.entry-channel-name";
-    private static final String CONFIG_MINECRAFT_USE_WHITELIST = "minecraft.use-whitelist";
-    private static final String CONFIG_MINECRAFT_KICK_DISCORD_LEAVE = "minecraft.kick-on-discord-leave";
-    private static final String CONFIG_MINECRAFT_KICK_DISCORD_LEAVE_MESSAGE = "minecraft.kick-on-discord-leave-message";
-    private static final String CONFIG_DISCORD_MIN_MOVE_INTERVAL = "discord.min-move-interval";
+    private static final String CONFIG_HOST = "host";
+    private static final String CONFIG_CATEGORY = "category";
+    private static final String CONFIG_ENTRY_CHANNEL = "entry-channel-name";
+    private static final String CONFIG_USE_WHITELIST = "use-whitelist";
+    private static final String CONFIG_KICK_DISCORD_LEAVE = "kick-on-discord-leave";
+    private static final String CONFIG_KICK_DISCORD_LEAVE_MESSAGE = "kick-on-discord-leave-message";
+    private static final String CONFIG_MIN_MOVE_INTERVAL = "min-move-interval";
 
     private StringFlag discordChannelFlag;
     private WorldGuardHandler.Factory worldGuardHandlerFactory;
+    private DiscordConnection connection;
 
     private static MCDiscordRegionsPlugin instance;
 
@@ -62,6 +67,15 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         // Configure commands
         getCommand("dregion").setExecutor(new DiscordRegionsCommand(this));
 
+        String host = getConfig().getString(CONFIG_HOST, "ws://localhost:8080");
+        try {
+            connection = new WebSocketConnection(new URI(host));
+        } catch (URISyntaxException e) {
+            getLogger().severe("Could not connect to websocket, invalid host: " + host);
+            getPluginLoader().disablePlugin(this);
+            return;
+        }
+
         getLogger().info("Is configured correctly!");
         instance = this;
     }
@@ -70,12 +84,5 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     public void onDisable() {
         saveConfig();
         WorldGuard.getInstance().getPlatform().getSessionManager().unregisterHandler(worldGuardHandlerFactory);
-    }
-
-    @Override
-    public void saveConfig() {
-        FileConfiguration c = getConfig();
-        // ...
-        super.saveConfig();
     }
 }

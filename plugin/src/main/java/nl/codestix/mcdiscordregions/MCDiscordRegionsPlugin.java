@@ -11,6 +11,7 @@ import nl.codestix.mcdiscordregions.websocket.WebSocketConnection;
 import nl.codestix.mcdiscordregions.websocket.WebSocketMessage;
 import nl.codestix.mcdiscordregions.websocket.WebSocketMessageType;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -108,33 +109,28 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
     @Override
     public void playerLeft(UUID uuid) {
-        Player player = getServer().getPlayer(uuid);
-        if (player == null)
-        {
-            getLogger().warning("playerLeft: Player with id " + uuid + " not found");
-            return;
-        }
         if (getConfig().getBoolean(CONFIG_KICK_DISCORD_LEAVE)) {
-            getLogger().info("kicking player " + player.getName());
-            player.kickPlayer(getConfig().getString(CONFIG_KICK_DISCORD_LEAVE_MESSAGE));
+            Player player = getServer().getPlayer(uuid);
+            if (player != null)
+            {
+                // Kick player on main thread
+                getServer().getScheduler().scheduleSyncDelayedTask(this, () -> player.kickPlayer(getConfig().getString(CONFIG_KICK_DISCORD_LEAVE_MESSAGE)));
+                getLogger().info("Kicked player " + player.getName());
+            }
         }
         if (getConfig().getBoolean(CONFIG_USE_WHITELIST)) {
-            getLogger().info("unwhitelisting player " + player.getName());
+            OfflinePlayer player = getServer().getOfflinePlayer(uuid);
             player.setWhitelisted(false);
+            getLogger().info("Un-whitelisted player " + player.getUniqueId());
         }
     }
 
     @Override
     public void playerJoin(UUID uuid) {
-        Player player = getServer().getPlayer(uuid);
-        if (player == null)
-        {
-            getLogger().warning("playerJoin: Player with id " + uuid + " not found");
-            return;
-        }
         if (getConfig().getBoolean(CONFIG_USE_WHITELIST)) {
-            getLogger().info("whitelisting player " + player.getName());
+            OfflinePlayer player = getServer().getOfflinePlayer(uuid);
             player.setWhitelisted(true);
+            getLogger().info("Whitelisted player " + player.getName() + " " + uuid);
         }
     }
 }

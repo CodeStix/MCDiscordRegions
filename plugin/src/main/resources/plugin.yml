@@ -9,4 +9,4 @@ commands:
  dregion:
    aliases: [drg]
    description: Configure the MCDiscordRegions plugin.
-   usage: /dregion [whitelist [on|off] | kickOnDiscordLeave [on|off] [kickMessage...] | limit <maxUsers> <channelName...> | save]
+   usage: /dregion [whitelist [on|off] | kick [on|off] [kickMessage...] | limit <maxUsers> <channelName...> | save]

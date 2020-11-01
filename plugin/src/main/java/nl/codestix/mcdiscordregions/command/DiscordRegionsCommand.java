@@ -31,14 +31,28 @@ public class DiscordRegionsCommand implements CommandExecutor
             commandSender.sendMessage("§dSettings were written to config file.");
             return true;
         }
-//        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("whitelist")) {
-//            if (strings.length == 1) {
-//
-//            }
-//            else {
-//                plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_USE_WHITELIST,strings[1].equalsIgnoreCase("on"));
-//            }
-//        }
+        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("whitelist")) {
+            if (strings.length >= 2) {
+                plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_USE_WHITELIST, strings[1].equalsIgnoreCase("on"));
+            }
+            commandSender.sendMessage("§dThe Discord-bound whitelist is " + (plugin.getConfig().getBoolean(MCDiscordRegionsPlugin.CONFIG_USE_WHITELIST, false) ? "on" : "off"));
+            return true;
+        }
+        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("kick")) {
+            if (strings.length >= 2) {
+                plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE, strings[1].equalsIgnoreCase("on"));
+                if (strings.length >= 3) {
+                    plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE_MESSAGE, join(" ", 2, strings));
+                }
+            }
+            commandSender.sendMessage("§dDiscord leave bound kicking is " + (plugin.getConfig().getBoolean(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE, false) ? "on" : "off"));
+            commandSender.sendMessage("§dKick message: " + plugin.getConfig().getString(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE_MESSAGE));
+            return true;
+        }
+        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("limit")) {
+            commandSender.sendMessage("§cNot implemented yet.");
+            return true;
+        }
 
         commandSender.sendMessage("§cUnknown arguments. Usage: " + command.getUsage());
         return true;

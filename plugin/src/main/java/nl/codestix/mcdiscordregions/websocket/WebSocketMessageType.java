@@ -5,5 +5,6 @@ public enum WebSocketMessageType {
     Join,
     Left,
     Death,
-    Respawn
+    Respawn,
+    Auth
 }

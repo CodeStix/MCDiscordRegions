@@ -12,12 +12,15 @@ import java.util.UUID;
 
 public class WebSocketConnection extends WebSocketClient implements DiscordConnection {
 
-    private String serverId;
-
-    public WebSocketConnection(URI serverUri, String serverId) {
+    public WebSocketConnection(URI serverUri) throws InterruptedException {
         super(serverUri);
         setTcpNoDelay(true);
-        this.serverId = serverId;
+        connectBlocking();
+    }
+
+    public WebSocketConnection(URI serverUri, String serverId) throws InterruptedException {
+        this(serverUri);
+        auth(serverId);
     }
 
     private void send(WebSocketMessage message) {
@@ -25,28 +28,33 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     }
 
     @Override
+    public void auth(String serverId) {
+        send(new AuthMessage(serverId));
+    }
+
+    @Override
     public void join(UUID uuid) {
-        send(new JoinMessage(serverId, uuid.toString()));
+        send(new PlayerBasedMessage(WebSocketMessageType.Join, uuid.toString()));
     }
 
     @Override
     public void left(UUID uuid) {
-        send(new LeftMessage(serverId, uuid.toString()));
+        send(new PlayerBasedMessage(WebSocketMessageType.Left, uuid.toString()));
     }
 
     @Override
     public void death(UUID uuid) {
-        send(new DeathMessage(serverId, uuid.toString()));
+        send(new PlayerBasedMessage(WebSocketMessageType.Death, uuid.toString()));
     }
 
     @Override
     public void respawn(UUID uuid) {
-        send(new RespawnMessage(serverId, uuid.toString()));
+        send(new PlayerBasedMessage(WebSocketMessageType.Respawn, uuid.toString()));
     }
 
     @Override
     public void regionMove(UUID uuid, String regionName) {
-        send(new MoveMessage(serverId, uuid.toString(), regionName));
+        send(new MoveMessage(uuid.toString(), regionName));
     }
 
     @Override

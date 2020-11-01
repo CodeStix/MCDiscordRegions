@@ -66,9 +66,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         String host = getConfig().getString(CONFIG_HOST, "ws://172.18.168.254:8080");
         getLogger().info("Connecting to Discord Regions bot at " + host);
         try {
-            WebSocketConnection ws = new WebSocketConnection(new URI(host), serverId);
-            ws.connectBlocking();
-            connection = ws;
+            connection = new WebSocketConnection(new URI(host), serverId);
         } catch (URISyntaxException e) {
             getLogger().severe("Could not connect to websocket, invalid host: " + host);
             getPluginLoader().disablePlugin(this);
@@ -101,6 +99,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (connection != null)
+            connection.close();
         saveConfig();
         WorldGuard.getInstance().getPlatform().getSessionManager().unregisterHandler(worldGuardHandlerFactory);
     }

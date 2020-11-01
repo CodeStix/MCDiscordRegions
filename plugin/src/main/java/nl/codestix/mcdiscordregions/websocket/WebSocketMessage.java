@@ -3,11 +3,9 @@ package nl.codestix.mcdiscordregions.websocket;
 import com.google.gson.Gson;
 
 public class WebSocketMessage {
-    public String serverId;
     public WebSocketMessageType action;
 
-    public WebSocketMessage(String serverId, WebSocketMessageType action) {
-        this.serverId = serverId;
+    public WebSocketMessage(WebSocketMessageType action) {
         this.action = action;
     }
 

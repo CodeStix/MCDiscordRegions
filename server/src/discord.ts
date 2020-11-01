@@ -51,3 +51,33 @@ discord.on("message", async (message) => {
         message.reply(`Welcome, ${uuid}`);
     }
 });
+
+export async function move(categoryId: string, userId: string, channelName: string) {
+    let channel = discord.channels.cache.get(categoryId);
+    if (!channel || channel.type !== "category") {
+        logger("is not a category:", categoryId);
+        return;
+    }
+    let category = channel as CategoryChannel;
+    let member = category.guild.members.cache.get(userId);
+    if (!member) {
+        logger("member is not found:", userId);
+        return;
+    }
+
+    if (!member.voice.channel) {
+        logger("cannot move member because he/she is not connected to a voice channel");
+        return;
+    }
+
+    let moveChannel = category.children.find((e) => e.name === channelName);
+    if (moveChannel == null) {
+        moveChannel = await category.guild.channels.create(channelName, {
+            type: "voice",
+            parent: category,
+            reason: "This location does exist in Minecraft",
+        });
+    }
+
+    await member.voice.setChannel(moveChannel, "Moved to this location in Minecraft");
+}

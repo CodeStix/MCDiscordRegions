@@ -20,4 +20,9 @@ public class WebSocketMessage {
         Gson gson = new Gson();
         return gson.toJson(this);
     }
+
+    @Override
+    public String toString() {
+        return toJSON();
+    }
 }

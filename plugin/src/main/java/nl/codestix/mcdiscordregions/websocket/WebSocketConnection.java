@@ -17,12 +17,11 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
 
     public WebSocketConnection(URI serverUri, String serverId) {
         super(serverUri);
+        this.serverId = serverId;
     }
 
     private void send(WebSocketMessage message) {
-        String text = message.toJSON();
-        Bukkit.getLogger().info("sending " + text);
-        send(text);
+        send(message.toJSON());
     }
 
     @Override

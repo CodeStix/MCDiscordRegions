@@ -1,8 +1,8 @@
 require("dotenv").config();
 import { Server as WebSocketServer } from "ws";
 import { debug } from "debug";
-import { connect } from "./discord";
-import { getCategory, getServer } from "./redis";
+import { connect, move } from "./discord";
+import { createPlayerBind, getCategory, getServer, getUser } from "./redis";
 import { WebSocketMessage } from "./WebSocketMessage";
 
 const logger = debug("websocket");
@@ -31,7 +31,7 @@ server.on("connection", (client, req) => {
         clientLogger(`closed connection: ${code} '${reason}'`);
     });
 
-    client.on("message", (message) => {
+    client.on("message", async (message) => {
         if (typeof message !== "string") {
             clientLogger(`received invalid data`);
             return;
@@ -44,8 +44,8 @@ server.on("connection", (client, req) => {
             return;
         }
 
-        const category = getCategory(data.serverId);
-        if (!category) {
+        const categoryId = await getCategory(data.serverId);
+        if (!categoryId) {
             clientLogger(`sent command but no category for the server (${data.serverId}) was found`);
             return;
         }
@@ -53,6 +53,15 @@ server.on("connection", (client, req) => {
         switch (data.action) {
             case "Move":
                 clientLogger(`move player ${data.playerUuid} to ${data.regionName}`);
+                const userId = await getUser(data.playerUuid);
+                if (userId) {
+                    move(categoryId, userId, data.regionName);
+                } else {
+                    clientLogger(
+                        "could not move user because it was not registered as a player, use key",
+                        await createPlayerBind(data.playerUuid)
+                    );
+                }
                 break;
             case "Join":
                 clientLogger(`player ${data.playerUuid} joined`);

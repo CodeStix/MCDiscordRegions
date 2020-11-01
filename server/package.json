@@ -1,0 +1,16 @@
+{
+  "name": "mc-discord-regions-server",
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "license": "MIT",
+  "devDependencies": {
+    "ts-node": "^9.0.0"
+  },
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "typescript": "^4.0.5"
+  }
+}

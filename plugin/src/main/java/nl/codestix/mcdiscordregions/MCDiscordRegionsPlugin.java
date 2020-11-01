@@ -7,6 +7,9 @@ import com.sk89q.worldguard.protection.flags.registry.FlagRegistry;
 import nl.codestix.mcdiscordregions.command.DiscordRegionsCommand;
 import nl.codestix.mcdiscordregions.listener.PlayerListener;
 import nl.codestix.mcdiscordregions.listener.RegionListener;
+import nl.codestix.mcdiscordregions.websocket.WebSocketConnection;
+import nl.codestix.mcdiscordregions.websocket.WebSocketMessage;
+import nl.codestix.mcdiscordregions.websocket.WebSocketMessageType;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -60,23 +63,11 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             getConfig().set(CONFIG_ID, serverId);
         }
 
-        // Register WorldGuard handler
-        worldGuardHandlerFactory = new WorldGuardHandler.Factory();
-        WorldGuard.getInstance().getPlatform().getSessionManager().registerHandler(worldGuardHandlerFactory, null);
-
-        // Configure event listeners
-        regionListener = new RegionListener(this, discordChannelFlag);
-        Bukkit.getPluginManager().registerEvents(regionListener, this);
-        playerListener = new PlayerListener();
-        Bukkit.getPluginManager().registerEvents(playerListener, this);
-
-        // Configure commands
-        getCommand("dregion").setExecutor(new DiscordRegionsCommand(this));
-
+        // Connect to Discord Bot
         String host = getConfig().getString(CONFIG_HOST, "ws://172.18.168.254:8080");
-        getLogger().info("Connecting to Discord regions server at " + host);
+        getLogger().info("Connecting to Discord Regions bot at " + host + " as " + serverId);
         try {
-            WebSocketConnection ws = new WebSocketConnection(new URI(host));
+            WebSocketConnection ws = new WebSocketConnection(new URI(host), serverId);
             ws.connectBlocking();
             ws.send(new WebSocketMessage(serverId, WebSocketMessageType.Move).toJSON());
             connection = ws;
@@ -89,6 +80,19 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             getPluginLoader().disablePlugin(this);
             return;
         }
+
+        // Register WorldGuard handler
+        worldGuardHandlerFactory = new WorldGuardHandler.Factory();
+        WorldGuard.getInstance().getPlatform().getSessionManager().registerHandler(worldGuardHandlerFactory, null);
+
+        // Configure event listeners
+        regionListener = new RegionListener(discordChannelFlag, connection);
+        Bukkit.getPluginManager().registerEvents(regionListener, this);
+        playerListener = new PlayerListener(connection);
+        Bukkit.getPluginManager().registerEvents(playerListener, this);
+
+        // Configure commands
+        getCommand("dregion").setExecutor(new DiscordRegionsCommand(this));
 
         getLogger().info("Is configured correctly!");
         instance = this;

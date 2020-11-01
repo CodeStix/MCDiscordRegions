@@ -1,5 +1,8 @@
-package nl.codestix.mcdiscordregions;
+package nl.codestix.mcdiscordregions.websocket;
 
+import nl.codestix.mcdiscordregions.DiscordConnection;
+import nl.codestix.mcdiscordregions.websocket.messages.JoinMessage;
+import nl.codestix.mcdiscordregions.websocket.messages.MoveMessage;
 import org.java_websocket.WebSocket;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -7,7 +10,7 @@ import org.java_websocket.handshake.ServerHandshake;
 import java.net.URI;
 import java.util.UUID;
 
-public class WebSocketConnection extends WebSocketClient implements DiscordConnection  {
+public class WebSocketConnection extends WebSocketClient implements DiscordConnection {
 
     private String serverId;
 
@@ -15,15 +18,18 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
         super(serverUri);
     }
 
+    private void send(WebSocketMessage message) {
+        send(message.toJSON());
+    }
+
     @Override
-    public String join(UUID uuid) {
-        // Send websocket message to server
-        return null;
+    public void join(UUID uuid) {
+        send(new JoinMessage(serverId, uuid.toString()));
     }
 
     @Override
     public void regionMove(UUID uuid, String regionName) {
-        // Send websocket message to server
+        send(new MoveMessage(serverId, uuid.toString(), regionName));
     }
 
     @Override

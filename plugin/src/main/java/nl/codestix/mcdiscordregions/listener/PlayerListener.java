@@ -1,5 +1,6 @@
 package nl.codestix.mcdiscordregions.listener;
 
+import nl.codestix.mcdiscordregions.DiscordConnection;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -9,7 +10,10 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 
 public class PlayerListener implements Listener {
 
-    public PlayerListener() {
+    private DiscordConnection connection;
+
+    public PlayerListener(DiscordConnection connection) {
+        this.connection = connection;
     }
 
     @EventHandler
@@ -26,6 +30,6 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-
+        connection.join(event.getPlayer().getUniqueId());
     }
 }

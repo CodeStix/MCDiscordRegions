@@ -1,4 +1,4 @@
-package nl.codestix.mcdiscordregions;
+package nl.codestix.mcdiscordregions.websocket;
 
 import com.google.gson.Gson;
 

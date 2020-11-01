@@ -1,23 +1,27 @@
 require("dotenv").config();
 import { Server as WebSocketServer } from "ws";
 import { debug } from "debug";
-import { connect, move, mute } from "./discord";
+import { MinecraftRegionsBot } from "./MinecraftRegionsBot";
 import { createPlayerBind, getCategory, getServer, getUser } from "./redis";
 import { WebSocketMessage } from "./WebSocketMessage";
 
 const logger = debug("websocket");
 
-logger("starting...");
-
+logger("starting websocket server...");
 const server = new WebSocketServer({
     port: process.env.PORT as any,
 });
-
 server.once("listening", () => {
     logger(`websocket server is listening on port ${process.env.PORT}`);
-
-    connect(process.env.DISCORD_TOKEN!);
 });
+
+const bot = new MinecraftRegionsBot(process.env.DISCORD_TOKEN!);
+bot.onUserLeaveChannel = (categoryId) => {
+    logger("user left channel", categoryId);
+};
+bot.onUserJoinChannel = (categoryId) => {
+    logger("user joined channel", categoryId);
+};
 
 server.on("connection", (client, req) => {
     const clientLogger = logger.extend(`[${req.connection.remoteAddress}:${req.connection.remotePort}]`);
@@ -55,7 +59,7 @@ server.on("connection", (client, req) => {
                 {
                     const userId = await getUser(data.playerUuid);
                     if (userId) {
-                        move(categoryId, userId, data.regionName ?? "Global");
+                        bot.move(categoryId, userId, data.regionName ?? "Global");
                     } else {
                         clientLogger(
                             "could not move user because it was not registered as a player, use key",
@@ -71,13 +75,13 @@ server.on("connection", (client, req) => {
             case "Death":
                 {
                     const userId = await getUser(data.playerUuid);
-                    if (userId) mute(categoryId, userId, true);
+                    if (userId) bot.mute(categoryId, userId, true);
                 }
                 break;
             case "Respawn":
                 {
                     const userId = await getUser(data.playerUuid);
-                    if (userId) mute(categoryId, userId, false);
+                    if (userId) bot.mute(categoryId, userId, false);
                 }
                 break;
             default:

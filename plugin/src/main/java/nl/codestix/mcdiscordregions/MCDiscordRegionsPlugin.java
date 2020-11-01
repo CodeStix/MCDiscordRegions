@@ -27,7 +27,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     private static final String CONFIG_KICK_DISCORD_LEAVE_MESSAGE = "kick-on-discord-leave-message";
     private static final String CONFIG_MIN_MOVE_INTERVAL = "min-move-interval";
 
-    private StringFlag discordChannelFlag;
+    private StringFlag discordChannelFlag = new StringFlag("discord-channel");
     private WorldGuardHandler.Factory worldGuardHandlerFactory;
     private DiscordConnection connection;
 
@@ -41,13 +41,10 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     public void onLoad() {
         FlagRegistry reg = WorldGuard.getInstance().getFlagRegistry();
         Flag<?> f = reg.get(discordChannelFlag.getName());
-        if (f == null) {
-            discordChannelFlag = new StringFlag("discord-channel");
+        if (f == null)
             reg.register(discordChannelFlag);
-        }
-        else {
+        else
             discordChannelFlag = (StringFlag)f;
-        }
     }
 
     @Override

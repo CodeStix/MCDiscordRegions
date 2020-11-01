@@ -8,13 +8,11 @@ import nl.codestix.mcdiscordregions.command.DiscordRegionsCommand;
 import nl.codestix.mcdiscordregions.listener.PlayerListener;
 import nl.codestix.mcdiscordregions.listener.RegionListener;
 import org.bukkit.Bukkit;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class MCDiscordRegionsPlugin extends JavaPlugin {
 
@@ -80,7 +78,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         try {
             WebSocketConnection ws = new WebSocketConnection(new URI(host));
             ws.connectBlocking();
-            ws.send(new RegionMessage(serverId, RegionMessageType.Move).toJSON());
+            ws.send(new WebSocketMessage(serverId, WebSocketMessageType.Move).toJSON());
             connection = ws;
         } catch (URISyntaxException e) {
             getLogger().severe("Could not connect to websocket, invalid host: " + host);

@@ -1,5 +1,5 @@
 package nl.codestix.mcdiscordregions;
 
-public enum RegionMessageType {
+public enum WebSocketMessageType {
     Move
 }

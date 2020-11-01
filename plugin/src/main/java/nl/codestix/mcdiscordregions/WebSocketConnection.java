@@ -9,7 +9,9 @@ import java.util.UUID;
 
 public class WebSocketConnection extends WebSocketClient implements DiscordConnection  {
 
-    public WebSocketConnection(URI serverUri) {
+    private String serverId;
+
+    public WebSocketConnection(URI serverUri, String serverId) {
         super(serverUri);
     }
 

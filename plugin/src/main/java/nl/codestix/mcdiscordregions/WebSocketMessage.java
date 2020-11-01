@@ -2,18 +2,18 @@ package nl.codestix.mcdiscordregions;
 
 import com.google.gson.Gson;
 
-public class RegionMessage {
+public class WebSocketMessage {
     public String serverId;
-    public RegionMessageType action;
+    public WebSocketMessageType action;
 
-    public RegionMessage(String serverId, RegionMessageType action) {
+    public WebSocketMessage(String serverId, WebSocketMessageType action) {
         this.serverId = serverId;
         this.action = action;
     }
 
-    public static RegionMessage fromJSON(String json) {
+    public static WebSocketMessage fromJSON(String json) {
         Gson gson = new Gson();
-        return gson.fromJson(json, RegionMessage.class);
+        return gson.fromJson(json, WebSocketMessage.class);
     }
 
     public String toJSON() {

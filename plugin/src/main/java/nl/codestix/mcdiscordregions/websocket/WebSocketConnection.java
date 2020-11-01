@@ -17,6 +17,7 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
 
     public WebSocketConnection(URI serverUri, String serverId) {
         super(serverUri);
+        setTcpNoDelay(true);
         this.serverId = serverId;
     }
 

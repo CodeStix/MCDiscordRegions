@@ -65,7 +65,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
 
         // Connect to Discord Bot
         String host = getConfig().getString(CONFIG_HOST, "ws://172.18.168.254:8080");
-        getLogger().info("Connecting to Discord Regions bot at " + host + " as " + serverId);
+        getLogger().info("Connecting to Discord Regions bot at " + host);
         try {
             WebSocketConnection ws = new WebSocketConnection(new URI(host), serverId);
             ws.connectBlocking();
@@ -79,6 +79,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             getPluginLoader().disablePlugin(this);
             return;
         }
+
+        getLogger().info("Create a Discord category (in a server with the Minecraft Regions bot) with the following name (including hashtags) to connect it with this server: ###" + serverId);
 
         // Register WorldGuard handler
         worldGuardHandlerFactory = new WorldGuardHandler.Factory();

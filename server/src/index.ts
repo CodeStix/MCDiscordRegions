@@ -2,8 +2,8 @@ require("dotenv").config();
 import { Server as WebSocketServer } from "ws";
 import { debug } from "debug";
 import { connect } from "./discord";
-import { RegionMessage, RegionMessageType } from "./RegionMessage";
 import { getCategory, getServer } from "./redis";
+import { WebSocketMessage } from "./WebSocketMessage";
 
 const logger = debug("websocket");
 
@@ -36,7 +36,7 @@ server.on("connection", (client, req) => {
             clientLogger(`received invalid data`);
             return;
         }
-        let data: RegionMessage;
+        let data: WebSocketMessage;
         try {
             data = JSON.parse(message);
         } catch (ex) {
@@ -52,10 +52,13 @@ server.on("connection", (client, req) => {
 
         switch (data.action) {
             case "Move":
-                clientLogger(`received move message`);
+                clientLogger(`move player ${data.playerUuid} to ${data.regionName}`);
+                break;
+            case "Join":
+                clientLogger(`player ${data.playerUuid} joined`);
                 break;
             default:
-                clientLogger(`received unknown action '${data.action}'`);
+                clientLogger(`received unknown action`, data);
                 break;
         }
     });

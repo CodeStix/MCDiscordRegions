@@ -1,8 +1,9 @@
 require("dotenv").config();
 import { Server as WebSocketServer } from "ws";
 import { debug } from "debug";
+import { connect } from "./discord";
 
-const logger = debug("mc-discord-regions");
+const logger = debug("mc-websocket");
 
 logger("starting...");
 
@@ -12,6 +13,8 @@ const server = new WebSocketServer({
 
 server.once("listening", () => {
     logger(`websocket server is listening on port ${process.env.PORT}`);
+
+    connect(process.env.DISCORD_TOKEN!);
 });
 
 server.on("connection", (client, req) => {

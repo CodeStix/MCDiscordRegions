@@ -69,7 +69,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         try {
             WebSocketConnection ws = new WebSocketConnection(new URI(host), serverId);
             ws.connectBlocking();
-            ws.send(new WebSocketMessage(serverId, WebSocketMessageType.Move).toJSON());
             connection = ws;
         } catch (URISyntaxException e) {
             getLogger().severe("Could not connect to websocket, invalid host: " + host);

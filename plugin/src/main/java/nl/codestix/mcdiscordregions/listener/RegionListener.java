@@ -1,6 +1,7 @@
 package nl.codestix.mcdiscordregions.listener;
 
 import com.sk89q.worldguard.protection.flags.StringFlag;
+import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import nl.codestix.mcdiscordregions.DiscordConnection;
 import nl.codestix.mcdiscordregions.event.RegionChangeEvent;
 import org.bukkit.Bukkit;
@@ -20,12 +21,16 @@ public class RegionListener implements Listener {
 
     @EventHandler
     public void onRegionChange(RegionChangeEvent event) {
-        String regionName = event.getEnteredRegion().getFlag(discordChannelFlag);
-        if (regionName == null) {
-            Bukkit.getLogger().info("regionName is null, not sending message");
+        ProtectedRegion region = event.getEnteredRegion();
+        if (region == null)
+        {
+            // Move to global region
+            connection.regionMove(event.getPlayer().getUniqueId(), null);
             return;
         }
-
+        String regionName = region.getFlag(discordChannelFlag);
+        if (regionName == null)
+            return;
         connection.regionMove(event.getPlayer().getUniqueId(), regionName);
     }
 }

@@ -8,7 +8,7 @@ public class MoveMessage extends WebSocketMessage {
     public String playerUuid;
     public String regionName;
 
-    public MoveMessage(String serverId, String regionName, String playerUuid) {
+    public MoveMessage(String serverId, String playerUuid, String regionName) {
         super(serverId, WebSocketMessageType.Move);
         this.regionName = regionName;
         this.playerUuid = playerUuid;

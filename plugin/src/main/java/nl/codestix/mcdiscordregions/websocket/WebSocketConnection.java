@@ -3,6 +3,7 @@ package nl.codestix.mcdiscordregions.websocket;
 import nl.codestix.mcdiscordregions.DiscordConnection;
 import nl.codestix.mcdiscordregions.websocket.messages.JoinMessage;
 import nl.codestix.mcdiscordregions.websocket.messages.MoveMessage;
+import org.bukkit.Bukkit;
 import org.java_websocket.WebSocket;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -19,7 +20,9 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     }
 
     private void send(WebSocketMessage message) {
-        send(message.toJSON());
+        String text = message.toJSON();
+        Bukkit.getLogger().info("sending " + text);
+        send(text);
     }
 
     @Override

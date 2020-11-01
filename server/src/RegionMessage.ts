@@ -1,5 +1,7 @@
 export interface RegionMessage {
     serverId: string;
-    action: "move" | "death";
+    action: RegionMessageType;
     [key: string]: any;
 }
+
+export type RegionMessageType = "Move" | "Death";

@@ -2,7 +2,7 @@ require("dotenv").config();
 import { Server as WebSocketServer } from "ws";
 import { debug } from "debug";
 import { connect } from "./discord";
-import { RegionMessage } from "./RegionMessage";
+import { RegionMessage, RegionMessageType } from "./RegionMessage";
 
 const logger = debug("mc-websocket");
 
@@ -46,7 +46,7 @@ server.on("connection", (client, req) => {
         logger("received", data);
 
         switch (data.action) {
-            case "move":
+            case "Move":
                 break;
             default:
                 logger(`${name} received unknown action '${data.action}'`);

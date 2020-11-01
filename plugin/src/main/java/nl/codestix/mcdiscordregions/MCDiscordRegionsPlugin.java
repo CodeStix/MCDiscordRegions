@@ -13,6 +13,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class MCDiscordRegionsPlugin extends JavaPlugin {
@@ -21,6 +22,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     public PlayerListener playerListener;
 
     private static final String CONFIG_HOST = "host";
+    private static final String CONFIG_ID = "id";
     private static final String CONFIG_CATEGORY = "category";
     private static final String CONFIG_ENTRY_CHANNEL = "entry-channel-name";
     private static final String CONFIG_USE_WHITELIST = "use-whitelist";
@@ -31,6 +33,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     private StringFlag discordChannelFlag = new StringFlag("discord-channel");
     private WorldGuardHandler.Factory worldGuardHandlerFactory;
     private DiscordConnection connection;
+    private String serverId;
 
     private static MCDiscordRegionsPlugin instance;
 
@@ -51,6 +54,13 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        if (getConfig().contains(CONFIG_ID)) {
+            serverId =  getConfig().getString(CONFIG_ID);
+        }
+        else {
+            serverId = UUID.randomUUID().toString();
+            getConfig().set(CONFIG_ID, serverId);
+        }
 
         // Register WorldGuard handler
         worldGuardHandlerFactory = new WorldGuardHandler.Factory();
@@ -65,13 +75,12 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         // Configure commands
         getCommand("dregion").setExecutor(new DiscordRegionsCommand(this));
 
-
         String host = getConfig().getString(CONFIG_HOST, "ws://172.18.168.254:8080");
         getLogger().info("Connecting to Discord regions server at " + host);
         try {
             WebSocketConnection ws = new WebSocketConnection(new URI(host));
             ws.connectBlocking();
-            ws.send("test");
+            ws.send(new RegionMessage(serverId, RegionMessageType.Move).toJSON());
             connection = ws;
         } catch (URISyntaxException e) {
             getLogger().severe("Could not connect to websocket, invalid host: " + host);

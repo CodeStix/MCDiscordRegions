@@ -5,7 +5,7 @@ import { connect } from "./discord";
 import { RegionMessage, RegionMessageType } from "./RegionMessage";
 import { getCategory, getServer } from "./redis";
 
-const logger = debug("mc-websocket");
+const logger = debug("websocket");
 
 logger("starting...");
 
@@ -20,37 +20,42 @@ server.once("listening", () => {
 });
 
 server.on("connection", (client, req) => {
-    const name = `[${req.connection.remoteAddress}:${req.connection.remotePort}]`;
-    logger(`${name} new connection`);
+    const clientLogger = logger.extend(`[${req.connection.remoteAddress}:${req.connection.remotePort}]`);
+    clientLogger(`new connection`);
 
     client.on("error", (err) => {
-        logger(`${name} error: ${err}`);
+        clientLogger(`error: ${err}`);
     });
 
     client.on("close", (code, reason) => {
-        logger(`${name} closed connection: ${code} '${reason}'`);
+        clientLogger(`closed connection: ${code} '${reason}'`);
     });
 
     client.on("message", (message) => {
         if (typeof message !== "string") {
-            logger(`${name} received invalid data`);
+            clientLogger(`received invalid data`);
             return;
         }
         let data: RegionMessage;
         try {
             data = JSON.parse(message);
         } catch (ex) {
-            logger(`${name} received malformed JSON: ${message}`);
+            clientLogger(`received malformed JSON: ${message}`);
             return;
         }
 
-        logger("received", data);
+        const category = getCategory(data.serverId);
+        if (!category) {
+            clientLogger(`sent command but no category for the server (${data.serverId}) was found`);
+            return;
+        }
 
         switch (data.action) {
             case "Move":
+                clientLogger(`received move message`);
                 break;
             default:
-                logger(`${name} received unknown action '${data.action}'`);
+                clientLogger(`received unknown action '${data.action}'`);
                 break;
         }
     });

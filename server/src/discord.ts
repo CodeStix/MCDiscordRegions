@@ -2,7 +2,7 @@ import { CategoryChannel, Client as DiscordBot, TextChannel } from "discord.js";
 import { debug } from "debug";
 import { deleteCategory, deleteServer, getServer, registerPlayer, registerServer, revokePlayerBind } from "./redis";
 
-const logger = debug("mc-discord-bot");
+const logger = debug("discord-bot");
 const discord = new DiscordBot();
 const CATEGORY_PREFIX = "###";
 const PLAYER_PREFIX = "#";

@@ -1,6 +1,8 @@
 package nl.codestix.mcdiscordregions.websocket;
 
+import com.google.gson.Gson;
 import nl.codestix.mcdiscordregions.DiscordConnection;
+import nl.codestix.mcdiscordregions.DiscordEvents;
 import nl.codestix.mcdiscordregions.websocket.messages.*;
 import org.bukkit.Bukkit;
 import org.java_websocket.WebSocket;
@@ -12,15 +14,36 @@ import java.util.UUID;
 
 public class WebSocketConnection extends WebSocketClient implements DiscordConnection {
 
-    public WebSocketConnection(URI serverUri) throws InterruptedException {
+    private DiscordEvents listener;
+
+    public WebSocketConnection(URI serverUri, DiscordEvents listener) throws InterruptedException {
         super(serverUri);
         setTcpNoDelay(true);
         connectBlocking();
+        this.listener = listener;
     }
 
-    public WebSocketConnection(URI serverUri, String serverId) throws InterruptedException {
-        this(serverUri);
+    public WebSocketConnection(URI serverUri, DiscordEvents listener, String serverId) throws InterruptedException {
+        this(serverUri, listener);
         auth(serverId);
+    }
+
+    public static WebSocketMessage fromJSON(String json) {
+        Gson gson = new Gson();
+        WebSocketMessage base = gson.fromJson(json, WebSocketMessage.class);
+        switch (base.action) {
+            case Auth:
+                return gson.fromJson(json, AuthMessage.class);
+            case Move:
+                return gson.fromJson(json, MoveMessage.class);
+            case Join:
+            case Left:
+            case Respawn:
+            case Death:
+                return gson.fromJson(json, PlayerBasedMessage.class);
+            default:
+                return null;
+        }
     }
 
     private void send(WebSocketMessage message) {
@@ -64,7 +87,18 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
 
     @Override
     public void onMessage(String s) {
-        // Process message
+        WebSocketMessage message = fromJSON(s);
+        if (message instanceof PlayerBasedMessage) {
+            PlayerBasedMessage playerMessage = (PlayerBasedMessage)message;
+            switch (playerMessage.action) {
+                case Join:
+                    listener.playerJoin(UUID.fromString(playerMessage.playerUuid));
+                    break;
+                case Left:
+                    listener.playerLeft(UUID.fromString(playerMessage.playerUuid));
+                    break;
+            }
+        }
     }
 
     @Override

@@ -11,24 +11,25 @@ import nl.codestix.mcdiscordregions.websocket.WebSocketConnection;
 import nl.codestix.mcdiscordregions.websocket.WebSocketMessage;
 import nl.codestix.mcdiscordregions.websocket.WebSocketMessageType;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.UUID;
 
-public class MCDiscordRegionsPlugin extends JavaPlugin {
+public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents {
 
     public RegionListener regionListener;
     public PlayerListener playerListener;
 
-    private static final String CONFIG_HOST = "host";
-    private static final String CONFIG_ID = "id";
-    private static final String CONFIG_GLOBAL_REGION = "global-region-name";
-    private static final String CONFIG_USE_WHITELIST = "use-whitelist";
-    private static final String CONFIG_KICK_DISCORD_LEAVE = "kick-on-discord-leave";
-    private static final String CONFIG_KICK_DISCORD_LEAVE_MESSAGE = "kick-on-discord-leave-message";
-    private static final String CONFIG_MIN_MOVE_INTERVAL = "min-move-interval";
+    public static final String CONFIG_HOST = "host";
+    public static final String CONFIG_ID = "id";
+    public static final String CONFIG_GLOBAL_REGION = "global-region-name";
+    public static final String CONFIG_USE_WHITELIST = "use-whitelist";
+    public static final String CONFIG_KICK_DISCORD_LEAVE = "kick-on-discord-leave";
+    public static final String CONFIG_KICK_DISCORD_LEAVE_MESSAGE = "kick-on-discord-leave-message";
+    public static final String CONFIG_MIN_MOVE_INTERVAL = "min-move-interval";
 
     private StringFlag discordChannelFlag = new StringFlag("discord-channel");
     private WorldGuardHandler.Factory worldGuardHandlerFactory;
@@ -66,7 +67,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         String host = getConfig().getString(CONFIG_HOST, "ws://172.18.168.254:8080");
         getLogger().info("Connecting to Discord Regions bot at " + host);
         try {
-            connection = new WebSocketConnection(new URI(host), serverId);
+            connection = new WebSocketConnection(new URI(host), this, serverId );
         } catch (URISyntaxException e) {
             getLogger().severe("Could not connect to websocket, invalid host: " + host);
             getPluginLoader().disablePlugin(this);
@@ -103,5 +104,37 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
             connection.close();
         saveConfig();
         WorldGuard.getInstance().getPlatform().getSessionManager().unregisterHandler(worldGuardHandlerFactory);
+    }
+
+    @Override
+    public void playerLeft(UUID uuid) {
+        Player player = getServer().getPlayer(uuid);
+        if (player == null)
+        {
+            getLogger().warning("playerLeft: Player with id " + uuid + " not found");
+            return;
+        }
+        if (getConfig().getBoolean(CONFIG_KICK_DISCORD_LEAVE)) {
+            getLogger().info("kicking player " + player.getName());
+            player.kickPlayer(getConfig().getString(CONFIG_KICK_DISCORD_LEAVE_MESSAGE));
+        }
+        if (getConfig().getBoolean(CONFIG_USE_WHITELIST)) {
+            getLogger().info("unwhitelisting player " + player.getName());
+            player.setWhitelisted(false);
+        }
+    }
+
+    @Override
+    public void playerJoin(UUID uuid) {
+        Player player = getServer().getPlayer(uuid);
+        if (player == null)
+        {
+            getLogger().warning("playerJoin: Player with id " + uuid + " not found");
+            return;
+        }
+        if (getConfig().getBoolean(CONFIG_USE_WHITELIST)) {
+            getLogger().info("whitelisting player " + player.getName());
+            player.setWhitelisted(true);
+        }
     }
 }

@@ -7,8 +7,8 @@ const CATEGORY_PREFIX = "###";
 const PLAYER_PREFIX = "#";
 
 export class MinecraftRegionsBot {
-    public onUserLeaveChannel: (categoryId: string) => void = () => {};
-    public onUserJoinChannel: (categoryId: string) => void = () => {};
+    public onUserLeaveChannel: (categoryId: string, userId: string) => void = () => {};
+    public onUserJoinChannel: (categoryId: string, userId: string) => void = () => {};
     private discord: DiscordBot;
 
     constructor(token: string) {
@@ -30,7 +30,7 @@ export class MinecraftRegionsBot {
         if (!state.channel || !newState.channel || state.channelID !== newState.channelID) {
             if (state.channel && state.channel.parentID && state.channel.parentID !== newState.channel?.parentID) {
                 // On user left voice channel
-                if (state.channel.parentID) this.onUserLeaveChannel(state.channel.parentID);
+                this.onUserLeaveChannel(state.channel.parentID, state.id);
             }
             if (
                 newState.channel &&
@@ -38,7 +38,7 @@ export class MinecraftRegionsBot {
                 newState.channel.parentID !== state.channel?.parentID
             ) {
                 // On user join voice channel
-                if (newState.channel.parentID) this.onUserJoinChannel(newState.channel.parentID);
+                this.onUserJoinChannel(newState.channel.parentID, state.id);
             }
         }
     }

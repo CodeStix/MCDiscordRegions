@@ -31,6 +31,14 @@ public class DiscordRegionsCommand implements CommandExecutor
             commandSender.sendMessage("§dSettings were written to config file.");
             return true;
         }
+//        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("whitelist")) {
+//            if (strings.length == 1) {
+//
+//            }
+//            else {
+//                plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_USE_WHITELIST,strings[1].equalsIgnoreCase("on"));
+//            }
+//        }
 
         commandSender.sendMessage("§cUnknown arguments. Usage: " + command.getUsage());
         return true;

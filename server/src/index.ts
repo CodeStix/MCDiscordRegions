@@ -2,8 +2,8 @@ require("dotenv").config();
 import WebSocket from "ws";
 import { debug } from "debug";
 import { MinecraftRegionsBot } from "./MinecraftRegionsBot";
-import { createPlayerBind, getCategory, getServer, getUser } from "./redis";
-import { WebSocketMessage } from "./WebSocketMessage";
+import { createPlayerBind, getCategory, getPlayer, getServer, getUser } from "./redis";
+import { JoinMessage, LeftMessage, WebSocketMessage } from "./WebSocketMessage";
 
 const logger = debug("websocket");
 
@@ -19,11 +19,29 @@ server.once("listening", () => {
 let connections = new Map<string, WebSocket>();
 
 const bot = new MinecraftRegionsBot(process.env.DISCORD_TOKEN!);
-bot.onUserLeaveChannel = (categoryId) => {
-    logger("user left channel", categoryId);
+bot.onUserLeaveChannel = async (categoryId, userId) => {
+    const serverId = await getServer(categoryId);
+    if (!serverId) return;
+
+    let connection = connections.get(serverId);
+    if (!connection) return;
+
+    let playerId = await getPlayer(userId);
+    if (!playerId) return;
+
+    connection.send(new LeftMessage(playerId).asJSON());
 };
-bot.onUserJoinChannel = (categoryId) => {
-    logger("user joined channel", categoryId);
+bot.onUserJoinChannel = async (categoryId, userId) => {
+    const serverId = await getServer(categoryId);
+    if (!serverId) return;
+
+    let connection = connections.get(serverId);
+    if (!connection) return;
+
+    let playerId = await getPlayer(userId);
+    if (!playerId) return;
+
+    connection.send(new JoinMessage(playerId).asJSON());
 };
 
 server.on("connection", (client, req) => {
@@ -82,10 +100,6 @@ server.on("connection", (client, req) => {
                         }
                     }
                     break;
-                case "Join":
-                    break;
-                case "Left":
-                    break;
                 case "Death":
                     {
                         if (!serverId) throw new Error("Not authenticated");
@@ -105,7 +119,7 @@ server.on("connection", (client, req) => {
                     }
                     break;
                 default:
-                    clientLogger(`received unknown action`, data);
+                    clientLogger(`received unhandled action`, data);
                     break;
             }
         } catch (ex) {

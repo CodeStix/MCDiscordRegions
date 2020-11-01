@@ -13,6 +13,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.concurrent.TimeUnit;
 
 public class MCDiscordRegionsPlugin extends JavaPlugin {
 
@@ -64,11 +65,20 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         // Configure commands
         getCommand("dregion").setExecutor(new DiscordRegionsCommand(this));
 
-        String host = getConfig().getString(CONFIG_HOST, "ws://localhost:8080");
+
+        String host = getConfig().getString(CONFIG_HOST, "ws://172.18.168.254:8080");
+        getLogger().info("Connecting to Discord regions server at " + host);
         try {
-            connection = new WebSocketConnection(new URI(host));
+            WebSocketConnection ws = new WebSocketConnection(new URI(host));
+            ws.connectBlocking();
+            ws.send("test");
+            connection = ws;
         } catch (URISyntaxException e) {
             getLogger().severe("Could not connect to websocket, invalid host: " + host);
+            getPluginLoader().disablePlugin(this);
+            return;
+        } catch(InterruptedException e) {
+            getLogger().severe("Could not connect to websocket: " + e.getMessage());
             getPluginLoader().disablePlugin(this);
             return;
         }

@@ -14,6 +14,18 @@ server.once("listening", () => {
     logger(`websocket server is listening on port ${process.env.PORT}`);
 });
 
-server.once("connection", (client, req) => {
-    logger(`client connection from ${client.url}`);
+server.on("connection", (client, req) => {
+    logger(`client connection from ${req.connection.remoteAddress}`);
+
+    client.on("error", (err) => {
+        logger(`client error: ${err}`);
+    });
+
+    client.on("close", (code, reason) => {
+        logger(`client closed connection: ${code} '${reason}'`);
+    });
+
+    client.on("message", (data) => {
+        logger(`received client message: ${data}`);
+    });
 });

@@ -1,13 +1,12 @@
 import { Client as DiscordBot, TextChannel } from "discord.js";
 import { debug } from "debug";
+import { registerPlayer, revokePlayerBind } from "./redis";
 
 const logger = debug("mc-discord-bot");
 const discord = new DiscordBot();
 
 discord.once("ready", () => {
     logger("connected to Discord");
-
-    sendMessage("this is a test");
 });
 
 export async function connect(token: string) {
@@ -15,17 +14,18 @@ export async function connect(token: string) {
     discord.login(token);
 }
 
-discord.on("message", (message) => {
-    logger("message", message.content);
-});
+discord.on("message", async (message) => {
+    if (!message.content.startsWith("#")) return;
 
-export async function sendMessage(message: string) {
-    let guild = await discord.guilds.fetch("719991074910896159");
-    let channel = guild.channels.cache.get("728252249892978698") as TextChannel | undefined;
+    let code = message.content.substring(1);
 
-    if (!channel) {
-        logger("channel not found");
+    let uuid = await revokePlayerBind(code);
+    if (!uuid) {
+        logger(`user ${message.author.id} tried to revoke invalid key '${code}'`);
+        message.reply("Invalid key.");
     } else {
-        channel.send(message);
+        logger(`registering player with uuid ${uuid} with userId ${message.author.id}`);
+        registerPlayer(uuid, message.author.id);
+        message.reply(`Welcome, ${uuid}`);
     }
-}
+});

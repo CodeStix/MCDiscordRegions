@@ -1,7 +1,7 @@
 require("dotenv").config();
 import { Server as WebSocketServer } from "ws";
 import { debug } from "debug";
-import { connect, move } from "./discord";
+import { connect, move, mute } from "./discord";
 import { createPlayerBind, getCategory, getServer, getUser } from "./redis";
 import { WebSocketMessage } from "./WebSocketMessage";
 
@@ -52,19 +52,33 @@ server.on("connection", (client, req) => {
 
         switch (data.action) {
             case "Move":
-                clientLogger(`move player ${data.playerUuid} to ${data.regionName}`);
-                const userId = await getUser(data.playerUuid);
-                if (userId) {
-                    move(categoryId, userId, data.regionName);
-                } else {
-                    clientLogger(
-                        "could not move user because it was not registered as a player, use key",
-                        await createPlayerBind(data.playerUuid)
-                    );
+                {
+                    const userId = await getUser(data.playerUuid);
+                    if (userId) {
+                        move(categoryId, userId, data.regionName ?? "Global");
+                    } else {
+                        clientLogger(
+                            "could not move user because it was not registered as a player, use key",
+                            await createPlayerBind(data.playerUuid)
+                        );
+                    }
                 }
                 break;
             case "Join":
-                clientLogger(`player ${data.playerUuid} joined`);
+                break;
+            case "Left":
+                break;
+            case "Death":
+                {
+                    const userId = await getUser(data.playerUuid);
+                    if (userId) mute(categoryId, userId, true);
+                }
+                break;
+            case "Respawn":
+                {
+                    const userId = await getUser(data.playerUuid);
+                    if (userId) mute(categoryId, userId, false);
+                }
                 break;
             default:
                 clientLogger(`received unknown action`, data);

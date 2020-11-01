@@ -1,8 +1,7 @@
 package nl.codestix.mcdiscordregions.websocket;
 
 import nl.codestix.mcdiscordregions.DiscordConnection;
-import nl.codestix.mcdiscordregions.websocket.messages.JoinMessage;
-import nl.codestix.mcdiscordregions.websocket.messages.MoveMessage;
+import nl.codestix.mcdiscordregions.websocket.messages.*;
 import org.bukkit.Bukkit;
 import org.java_websocket.WebSocket;
 import org.java_websocket.client.WebSocketClient;
@@ -31,6 +30,21 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     }
 
     @Override
+    public void left(UUID uuid) {
+        send(new LeftMessage(serverId, uuid.toString()));
+    }
+
+    @Override
+    public void death(UUID uuid) {
+        send(new DeathMessage(serverId, uuid.toString()));
+    }
+
+    @Override
+    public void respawn(UUID uuid) {
+        send(new RespawnMessage(serverId, uuid.toString()));
+    }
+
+    @Override
     public void regionMove(UUID uuid, String regionName) {
         send(new MoveMessage(serverId, uuid.toString(), regionName));
     }
@@ -47,11 +61,11 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
 
     @Override
     public void onClose(int i, String s, boolean b) {
-        // Process close
+        Bukkit.getLogger().warning("Connection lost with Discord bot.");
     }
 
     @Override
     public void onError(Exception e) {
-        // Process error
+        Bukkit.getLogger().severe("Discord bot connection exception: " + e.getMessage());
     }
 }

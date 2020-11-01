@@ -24,8 +24,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
 
     private static final String CONFIG_HOST = "host";
     private static final String CONFIG_ID = "id";
-    private static final String CONFIG_CATEGORY = "category";
-    private static final String CONFIG_ENTRY_CHANNEL = "entry-channel-name";
+    private static final String CONFIG_GLOBAL_REGION = "global-region-name";
     private static final String CONFIG_USE_WHITELIST = "use-whitelist";
     private static final String CONFIG_KICK_DISCORD_LEAVE = "kick-on-discord-leave";
     private static final String CONFIG_KICK_DISCORD_LEAVE_MESSAGE = "kick-on-discord-leave-message";
@@ -87,7 +86,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin {
         WorldGuard.getInstance().getPlatform().getSessionManager().registerHandler(worldGuardHandlerFactory, null);
 
         // Configure event listeners
-        regionListener = new RegionListener(discordChannelFlag, connection);
+        String globalRegionName = getConfig().getString(CONFIG_GLOBAL_REGION, "Global");
+        regionListener = new RegionListener(discordChannelFlag, connection, globalRegionName);
         Bukkit.getPluginManager().registerEvents(regionListener, this);
         playerListener = new PlayerListener(connection);
         Bukkit.getPluginManager().registerEvents(playerListener, this);

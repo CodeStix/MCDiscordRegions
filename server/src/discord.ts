@@ -52,13 +52,44 @@ discord.on("message", async (message) => {
     }
 });
 
-export async function move(categoryId: string, userId: string, channelName: string) {
+function getCategory(categoryId: string): CategoryChannel | null {
     let channel = discord.channels.cache.get(categoryId);
     if (!channel || channel.type !== "category") {
         logger("is not a category:", categoryId);
+        return null;
+    } else {
+        return channel as CategoryChannel;
+    }
+}
+
+export async function mute(categoryId: string, userId: string, mute: boolean) {
+    let category = getCategory(categoryId);
+    if (!category) {
+        logger("category %s not found", categoryId);
         return;
     }
-    let category = channel as CategoryChannel;
+
+    let member = category.guild.members.cache.get(userId);
+    if (!member) {
+        logger("member is not found:", userId);
+        return;
+    }
+
+    if (!member.voice.channel) {
+        logger("cannot mute member because he/she is not connected to a voice channel");
+        return;
+    }
+
+    await member.voice.setMute(mute);
+}
+
+export async function move(categoryId: string, userId: string, channelName: string) {
+    let category = getCategory(categoryId);
+    if (!category) {
+        logger("category %s not found", categoryId);
+        return;
+    }
+
     let member = category.guild.members.cache.get(userId);
     if (!member) {
         logger("member is not found:", userId);

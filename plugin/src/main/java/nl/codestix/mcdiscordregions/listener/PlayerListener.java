@@ -18,14 +18,17 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onDeath(PlayerDeathEvent event) {
+        connection.death(event.getEntity().getUniqueId());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        connection.left(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
+        connection.respawn(event.getPlayer().getUniqueId());
     }
 
     @EventHandler

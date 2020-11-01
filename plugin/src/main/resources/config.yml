@@ -7,10 +7,8 @@ use-whitelist: false
 kick-on-discord-leave: true
 kick-on-discord-leave-message: Not registered.
 
-# The name of the discord channel category to use with this plugin, channels will be created in this category if enabled.
-category: Minecraft Regions
-# The name of the Entry channel, this is the name of the channel where players should join to use the system.
-entry-channel-name: Entry
-
 # Each player can only be moved to a Discord channel each x milliseconds. (minimum time between moves)
 min-move-interval: 1000
+
+# The name of the Discord channel when the player is in no region (aka the global region)
+global-region-name: Global

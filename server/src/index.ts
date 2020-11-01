@@ -3,6 +3,7 @@ import { Server as WebSocketServer } from "ws";
 import { debug } from "debug";
 import { connect } from "./discord";
 import { RegionMessage, RegionMessageType } from "./RegionMessage";
+import { getCategory, getServer } from "./redis";
 
 const logger = debug("mc-websocket");
 

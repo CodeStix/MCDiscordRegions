@@ -1,6 +1,6 @@
 import { CategoryChannel, Client as DiscordBot, TextChannel } from "discord.js";
 import { debug } from "debug";
-import { deleteGuild, deleteServer, getServer, registerPlayer, registerServer, revokePlayerBind } from "./redis";
+import { deleteCategory, deleteServer, getServer, registerPlayer, registerServer, revokePlayerBind } from "./redis";
 
 const logger = debug("mc-discord-bot");
 const discord = new DiscordBot();
@@ -22,7 +22,7 @@ discord.on("channelDelete", async (channel) => {
     let server = await getServer(category.id);
     if (!server) return;
     deleteServer(server);
-    deleteGuild(category.id);
+    deleteCategory(category.id);
     logger(`category (${category.id}) got removed, causing server (${server}) to be removed too`);
 });
 

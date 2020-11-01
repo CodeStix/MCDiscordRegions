@@ -18,9 +18,9 @@ const client = new RedisClient({
 });
 const getAsync = util.promisify(client.get).bind(client);
 
-export function registerServer(serverId: string, guildId: string) {
-    client.set(`server:${serverId}`, guildId);
-    client.set(`guild:${guildId}`, serverId);
+export function registerServer(serverId: string, categoryId: string) {
+    client.set(`server:${serverId}`, categoryId);
+    client.set(`category:${categoryId}`, serverId);
 }
 
 export function registerPlayer(playerUuid: string, userId: string) {
@@ -28,20 +28,20 @@ export function registerPlayer(playerUuid: string, userId: string) {
     client.set(`user:${userId}`, playerUuid);
 }
 
-export function deleteGuild(guildId: string) {
-    client.del(`guild:${guildId}`);
+export function deleteCategory(categoryId: string) {
+    client.del(`category:${categoryId}`);
 }
 
 export function deleteServer(serverId: string) {
     client.del(`server:${serverId}`);
 }
 
-export async function getGuild(serverIp: string) {
-    return await getAsync(`server:${serverIp}`);
+export async function getCategory(serverId: string) {
+    return await getAsync(`server:${serverId}`);
 }
 
-export async function getServer(guildId: string) {
-    return await getAsync(`guild:${guildId}`);
+export async function getServer(categoryId: string) {
+    return await getAsync(`category:${categoryId}`);
 }
 
 export async function getUser(playerUuid: string) {

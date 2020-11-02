@@ -1,6 +1,7 @@
-import { CategoryChannel, Channel, Client as DiscordBot, Message, VoiceState } from "discord.js";
+import { CategoryChannel, Channel, Client as DiscordBot, Message, MessageEmbed, VoiceState } from "discord.js";
 import { debug } from "debug";
 import { deleteCategory, deleteServer, getServer, registerPlayer, registerServer, revokePlayerBind } from "./redis";
+import { getIGN } from "./minecraft";
 
 const logger = debug("discord-bot");
 
@@ -91,15 +92,25 @@ export class MinecraftRegionsBot {
         if (!message.content.startsWith(PLAYER_PREFIX)) return;
 
         if (message.channel.type !== "text" || !message.channel.parentID) {
-            message.reply(`Please use the #${PLAYER_REGISTER_CHANNEL} channel`);
+            message.channel.send(
+                new MessageEmbed()
+                    .setColor(16711680)
+                    .setTitle(
+                        `❌ This channel is not connected to a Minecraft server, please use the #${PLAYER_REGISTER_CHANNEL} channel.`
+                    )
+            );
             return;
         }
 
         const categoryId = message.channel.parentID;
         const serverId = await getServer(categoryId);
         if (!serverId) {
-            message.reply(
-                `This channel is not connected to a Minecraft server, please use the #${PLAYER_REGISTER_CHANNEL} channel to register yourself.`
+            message.channel.send(
+                new MessageEmbed()
+                    .setColor(16711680)
+                    .setTitle(
+                        `❌ This channel is not connected to a Minecraft server, please use the #${PLAYER_REGISTER_CHANNEL} channel.`
+                    )
             );
             return;
         }
@@ -108,12 +119,26 @@ export class MinecraftRegionsBot {
         let uuid = await revokePlayerBind(key);
         if (!uuid) {
             logger(`user ${message.author.id} tried to revoke invalid key '${key}'`);
-            message.reply("Invalid key.");
+            message.channel.send(
+                new MessageEmbed()
+                    .setColor(16711680)
+                    .setTitle(
+                        `❌ That is not a valid Minecraft code. You can receive a code when you join the Minecraft server. These codes are CaSe SeNsiTiVe.`
+                    )
+            );
         } else {
             logger(`registering player with uuid ${uuid} with userId ${message.author.id}`);
             registerPlayer(uuid, message.author.id);
-            message.reply(`Welcome, ${uuid}`);
             this.onUserBound(serverId, message.author.id, uuid);
+
+            let ign = await getIGN(uuid);
+            message.channel.send(
+                new MessageEmbed()
+                    .setColor(65280)
+                    .setTitle(
+                        `✅ ${message.author.username}, your Discord account is now connected to your Minecraft account ${ign}!`
+                    )
+            );
         }
     }
 

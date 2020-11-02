@@ -1,7 +1,7 @@
 import axios from "axios";
 import { debug } from "debug";
 
-const logger = debug("minecraft");
+const logger = debug("mcdr:minecraft");
 
 export async function getIGN(uuid: string): Promise<string | null> {
     try {

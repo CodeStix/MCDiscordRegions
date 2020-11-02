@@ -5,7 +5,7 @@ import { createPlayerBind, getCategory, getPlayer, getServer, getUser } from "./
 import { JoinMessage, LeftMessage, RequireUserMessage, WebSocketMessage } from "./WebSocketMessage";
 import { MinecraftRegionsBot, PLAYER_PREFIX } from "./MinecraftRegionsBot";
 
-const logger = debug("websocket");
+const logger = debug("mcdr:server");
 
 logger("starting websocket server...");
 const server = new WebSocket.Server({

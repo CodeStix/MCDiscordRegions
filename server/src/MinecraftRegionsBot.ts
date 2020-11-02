@@ -3,7 +3,7 @@ import { debug } from "debug";
 import { deleteCategory, deleteServer, getServer, registerPlayer, registerServer, revokePlayerBind } from "./redis";
 import { getIGN } from "./minecraft";
 
-const logger = debug("discord-bot");
+const logger = debug("mcdr:discord-bot");
 
 export const CATEGORY_PREFIX = "###";
 export const PLAYER_PREFIX = "#";

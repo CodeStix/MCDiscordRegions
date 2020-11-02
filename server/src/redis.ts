@@ -8,7 +8,7 @@ import { debug } from "debug";
 // player: a Minecraft player
 // user: a Discord user
 
-const logger = debug("redis");
+const logger = debug("mcdr:redis");
 logger("connecting to redis...");
 
 const client = new RedisClient({

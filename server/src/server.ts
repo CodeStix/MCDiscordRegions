@@ -1,7 +1,7 @@
 require("dotenv").config();
 import WebSocket from "ws";
 import { debug } from "debug";
-import { createPlayerBind, getCategory, getPlayer, getServer, getUser } from "./redis";
+import { createPlayerBind, getCategory, getPlayer, getServer, getUser, rateLimit } from "./redis";
 import { BoundMessage, JoinMessage, LeftMessage, RequireUserMessage, WebSocketMessage } from "./WebSocketMessage";
 import { MinecraftRegionsBot, PLAYER_PREFIX } from "./MinecraftRegionsBot";
 
@@ -58,6 +58,11 @@ server.on("connection", (client, req) => {
     });
 
     client.on("message", async (message) => {
+        if (await rateLimit(req.connection.remoteAddress!)) {
+            clientLogger("got rate limited!!");
+            return;
+        }
+
         if (typeof message !== "string") {
             clientLogger(`received invalid data`);
             return;

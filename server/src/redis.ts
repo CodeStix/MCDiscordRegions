@@ -17,6 +17,17 @@ const client = new RedisClient({
     password: process.env.REDIS_PASS,
 });
 const getAsync = util.promisify(client.get).bind(client);
+const incrAsync = util.promisify(client.incr).bind(client);
+
+export async function rateLimit(ip: string): Promise<boolean> {
+    let i = await incrAsync(`ratelimit:${ip}`);
+    if (i <= 1) {
+        client.expire(`ratelimit:${ip}`, 60 * 15);
+        return false;
+    } else {
+        return i >= 60 * 15 * 8;
+    }
+}
 
 export function registerServer(serverId: string, categoryId: string) {
     client.set(`server:${serverId}`, categoryId);

@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 import { debug } from "debug";
 
 // server: a Minecraft server
-// guild: a Discord server
+// category: a Discord server category (collection of channels)
 // player: a Minecraft player
 // user: a Discord user
 

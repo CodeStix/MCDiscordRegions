@@ -1,7 +1,7 @@
 {
   "name": "mc-discord-regions-server",
   "version": "0.1.0",
-  "main": "build/index.js",
+  "main": "build/server.js",
   "license": "MIT",
   "devDependencies": {
     "@types/debug": "^4.1.5",

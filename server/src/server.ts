@@ -1,9 +1,9 @@
 require("dotenv").config();
 import WebSocket from "ws";
 import { debug } from "debug";
-import { MinecraftRegionsBot } from "./MinecraftRegionsBot";
 import { createPlayerBind, getCategory, getPlayer, getServer, getUser } from "./redis";
 import { JoinMessage, LeftMessage, WebSocketMessage } from "./WebSocketMessage";
+import { MinecraftRegionsBot } from "./MinecraftRegionsBot";
 
 const logger = debug("websocket");
 
@@ -12,18 +12,25 @@ const server = new WebSocket.Server({
     port: process.env.PORT as any,
 });
 
+let connections = new Map<string, WebSocket>();
+
+/**
+ * Returns an active connection to a Minecraft server, or null if no active connection is available.
+ * @param categoryId The categoryId the Minecraft server belongs to.
+ */
+async function getConnection(categoryId: string): Promise<WebSocket | null> {
+    const serverId = await getServer(categoryId);
+    if (!serverId) return null;
+    return connections.get(serverId) ?? null;
+}
+
 server.once("listening", () => {
     logger(`websocket server is listening on port ${process.env.PORT}`);
 });
 
-let connections = new Map<string, WebSocket>();
-
 const bot = new MinecraftRegionsBot(process.env.DISCORD_TOKEN!);
 bot.onUserLeaveChannel = async (categoryId, userId) => {
-    const serverId = await getServer(categoryId);
-    if (!serverId) return;
-
-    let connection = connections.get(serverId);
+    let connection = await getConnection(categoryId);
     if (!connection) return;
 
     let playerId = await getPlayer(userId);
@@ -32,10 +39,7 @@ bot.onUserLeaveChannel = async (categoryId, userId) => {
     connection.send(new LeftMessage(playerId).asJSON());
 };
 bot.onUserJoinChannel = async (categoryId, userId) => {
-    const serverId = await getServer(categoryId);
-    if (!serverId) return;
-
-    let connection = connections.get(serverId);
+    let connection = await getConnection(categoryId);
     if (!connection) return;
 
     let playerId = await getPlayer(userId);

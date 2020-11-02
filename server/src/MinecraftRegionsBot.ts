@@ -7,6 +7,7 @@ import {
     Message,
     MessageEmbed,
     OverwriteResolvable,
+    VoiceChannel,
     VoiceState,
 } from "discord.js";
 import { debug } from "debug";
@@ -49,8 +50,9 @@ export class MinecraftRegionsBot {
                 // On user left voice channel
                 let serverId = await getServer(state.channel.parentID);
                 if (serverId) {
-                    this.handleChannelLeave(state);
                     this.onUserLeaveChannel(serverId, state.id);
+                    // Allow the user to resume where he left off
+                    this.overrideChannelAccess(state.channel, state.id, true);
                 }
             }
             if (
@@ -61,30 +63,30 @@ export class MinecraftRegionsBot {
                 // On user join voice channel
                 let serverId = await getServer(newState.channel.parentID);
                 if (serverId) {
-                    this.handleChannelJoin(newState);
                     this.onUserJoinChannel(serverId, state.id);
+                    // Revoke their 'resume' permissions
+                    this.overrideChannelAccess(newState.channel, newState.id, false);
                 }
             }
         }
     }
 
-    private async handleChannelLeave(state: VoiceState) {
-        // Allow the user to resume where he left off
-        await state.channel!.overwritePermissions([
-            ...state.channel!.permissionOverwrites.values(),
-            {
-                type: "member",
-                id: state.id,
-                allow: ["CONNECT", "VIEW_CHANNEL"],
-            },
-        ]);
-    }
-
-    private async handleChannelJoin(state: VoiceState) {
-        // Revoke their 'resume' permissions
-        await state.channel!.overwritePermissions(
-            state.channel!.permissionOverwrites.filter((e) => !(e.type === "member" && e.id === state.id))
-        );
+    private async overrideChannelAccess(channel: VoiceChannel, userId: string, allow: boolean) {
+        logger("overriding channel access for %s, user %s to %o", channel.name, userId, allow);
+        if (allow) {
+            await channel!.overwritePermissions([
+                ...channel!.permissionOverwrites.values(),
+                {
+                    type: "member",
+                    id: userId,
+                    allow: ["CONNECT", "VIEW_CHANNEL"],
+                },
+            ]);
+        } else {
+            await channel.overwritePermissions(
+                channel.permissionOverwrites.filter((e) => !(e.type === "member" && e.id === userId))
+            );
+        }
     }
 
     private async handleChannelUpdate(channel: Channel, newChannel: Channel) {
@@ -206,7 +208,7 @@ export class MinecraftRegionsBot {
         return member;
     }
 
-    private async getManagerRole(guild: Guild) {
+    private async getOrCreateRegionManagerRole(guild: Guild) {
         let role = guild.roles.cache.find((role) => role.name === "Regions Manager");
         if (!role) {
             role = await guild.roles.create({
@@ -214,6 +216,39 @@ export class MinecraftRegionsBot {
             });
         }
         return role;
+    }
+
+    private async getOrCreateRegionChannel(category: CategoryChannel, name: string) {
+        let channel = category.children.find((e) => e.name === name);
+        if (channel == null) {
+            // Set permissions: everyone but the bot and Minecraft Regions Managers can see the created regions channels
+            let everyone = category.guild.roles.everyone;
+            let manager = await this.getOrCreateRegionManagerRole(category.guild);
+            return await category.guild.channels.create(name, {
+                type: "voice",
+                parent: category,
+                reason: "This location does exist in Minecraft",
+                permissionOverwrites: [
+                    {
+                        id: everyone,
+                        type: "role",
+                        deny: ["CONNECT", "VIEW_CHANNEL"],
+                    },
+                    {
+                        id: category.guild.me!,
+                        type: "member",
+                        allow: ["CONNECT", "VIEW_CHANNEL"],
+                    },
+                    {
+                        id: manager,
+                        type: "role",
+                        allow: ["CONNECT", "VIEW_CHANNEL"],
+                    },
+                ],
+            });
+        } else {
+            return channel;
+        }
     }
 
     public async kick(categoryId: string, userId: string) {
@@ -252,38 +287,7 @@ export class MinecraftRegionsBot {
             return;
         }
 
-        let moveChannel = category.children.find((e) => e.name === channelName);
-        if (moveChannel == null) {
-            let everyone = category.guild.roles.everyone;
-
-            let permissions: OverwriteResolvable[] = [
-                {
-                    id: everyone,
-                    type: "role",
-                    deny: ["CONNECT", "VIEW_CHANNEL"],
-                },
-                {
-                    id: category.guild.me!,
-                    type: "member",
-                    allow: ["CONNECT", "VIEW_CHANNEL"],
-                },
-            ];
-
-            let manager = await this.getManagerRole(category.guild);
-            permissions.push({
-                id: manager,
-                type: "role",
-                allow: ["CONNECT", "VIEW_CHANNEL"],
-            });
-
-            moveChannel = await category.guild.channels.create(channelName, {
-                type: "voice",
-                parent: category,
-                reason: "This location does exist in Minecraft",
-                permissionOverwrites: permissions,
-            });
-        }
-
+        let moveChannel = await this.getOrCreateRegionChannel(category, channelName);
         await member.voice.setChannel(moveChannel, "Moved to this location in Minecraft");
     }
 }

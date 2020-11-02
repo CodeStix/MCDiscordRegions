@@ -128,6 +128,7 @@ export class MinecraftRegionsBot {
 
     private async handleMessage(message: Message) {
         if (!message.content.startsWith(PLAYER_PREFIX)) return;
+        let userId = message.author.id;
 
         if (message.channel.type !== "text" || !message.channel.parentID) {
             message.channel.send(
@@ -156,7 +157,7 @@ export class MinecraftRegionsBot {
         let key = message.content.substring(PLAYER_PREFIX.length);
         let uuid = await revokePlayerBind(key);
         if (!uuid) {
-            logger(`user ${message.author.id} tried to revoke invalid key '${key}'`);
+            logger(`user ${userId} tried to revoke invalid key '${key}'`);
             message.channel.send(
                 new MessageEmbed()
                     .setColor(16711680)
@@ -165,9 +166,9 @@ export class MinecraftRegionsBot {
                     )
             );
         } else {
-            logger(`registering player with uuid ${uuid} with userId ${message.author.id}`);
-            registerPlayer(uuid, message.author.id);
-            this.onUserBound(serverId, message.author.id, uuid);
+            logger(`registering player with uuid ${uuid} with userId ${userId}`);
+            registerPlayer(uuid, userId);
+            this.onUserBound(serverId, userId, uuid);
 
             let ign = await getIGN(uuid);
             message.channel.send(
@@ -177,6 +178,11 @@ export class MinecraftRegionsBot {
                         `✅ ${message.author.username}, your Discord account is now connected to your Minecraft account ${ign}!`
                     )
             );
+
+            // Create or get the global (default channel)
+            let globalChannel = await this.getOrCreateRegionChannel(message.channel.parent!, "Global");
+            // Allow access to the (normally hidden) global channel
+            this.overrideChannelAccess(globalChannel, userId, true);
         }
     }
 
@@ -218,8 +224,8 @@ export class MinecraftRegionsBot {
         return role;
     }
 
-    private async getOrCreateRegionChannel(category: CategoryChannel, name: string) {
-        let channel = category.children.find((e) => e.name === name);
+    private async getOrCreateRegionChannel(category: CategoryChannel, name: string): Promise<VoiceChannel> {
+        let channel = category.children.find((e) => e.type === "voice" && e.name === name);
         if (channel == null) {
             // Set permissions: everyone but the bot and Minecraft Regions Managers can see the created regions channels
             let everyone = category.guild.roles.everyone;
@@ -247,7 +253,7 @@ export class MinecraftRegionsBot {
                 ],
             });
         } else {
-            return channel;
+            return channel as VoiceChannel;
         }
     }
 

@@ -2,9 +2,11 @@ import {
     CategoryChannel,
     Channel,
     Client as DiscordBot,
+    Guild,
     GuildMember,
     Message,
     MessageEmbed,
+    OverwriteResolvable,
     VoiceState,
 } from "discord.js";
 import { debug } from "debug";
@@ -17,6 +19,7 @@ export const CATEGORY_PREFIX = "###";
 export const PLAYER_PREFIX = "#";
 export const PLAYER_REGISTER_CHANNEL = "minecraft-bind";
 export const PLAYER_REGISTER_CHANNEL_DESCRIPTION = "Use this channel to bind your Discord tag to your Minecraft name.";
+export const REGIONS_MANAGER_ROLE = "Minecraft Regions Manager";
 
 export class MinecraftRegionsBot {
     public onUserLeaveChannel: (serverId: string, userId: string) => void = () => {};
@@ -178,6 +181,16 @@ export class MinecraftRegionsBot {
         return member;
     }
 
+    private async getManagerRole(guild: Guild) {
+        let role = guild.roles.cache.find((role) => role.name === "Regions Manager");
+        if (!role) {
+            role = await guild.roles.create({
+                data: { name: REGIONS_MANAGER_ROLE, mentionable: true, color: [255, 128, 64] },
+            });
+        }
+        return role;
+    }
+
     public async kick(categoryId: string, userId: string) {
         const member = this.getMember(categoryId, userId);
         if (!member) return;
@@ -212,10 +225,33 @@ export class MinecraftRegionsBot {
 
         let moveChannel = category.children.find((e) => e.name === channelName);
         if (moveChannel == null) {
+            let everyone = category.guild.roles.everyone;
+
+            let permissions: OverwriteResolvable[] = [
+                {
+                    id: everyone,
+                    type: "role",
+                    deny: ["CONNECT", "VIEW_CHANNEL"],
+                },
+                {
+                    id: category.guild.me!,
+                    type: "member",
+                    allow: ["CONNECT", "VIEW_CHANNEL"],
+                },
+            ];
+
+            let manager = await this.getManagerRole(category.guild);
+            permissions.push({
+                id: manager,
+                type: "role",
+                allow: ["CONNECT", "VIEW_CHANNEL"],
+            });
+
             moveChannel = await category.guild.channels.create(channelName, {
                 type: "voice",
                 parent: category,
                 reason: "This location does exist in Minecraft",
+                permissionOverwrites: permissions,
             });
         }
 

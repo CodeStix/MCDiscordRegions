@@ -96,20 +96,22 @@ server.on("connection", (client, req) => {
                         }
                     }
                     break;
+                case "Left":
+                    {
+                        if (!serverId) throw new Error("Not authenticated");
+                        const categoryId = await getCategory(serverId);
+                        if (!categoryId) throw new Error(`No category found for server (${serverId})`);
+                        const userId = await getUser(data.playerUuid);
+                        if (userId) bot.kick(categoryId, userId);
+                    }
+                    break;
                 case "Move":
                     {
                         if (!serverId) throw new Error("Not authenticated");
                         const categoryId = await getCategory(serverId);
                         if (!categoryId) throw new Error(`No category found for server (${serverId})`);
                         const userId = await getUser(data.playerUuid);
-                        if (userId) {
-                            bot.move(categoryId, userId, data.regionName ?? "Global");
-                        } else {
-                            clientLogger(
-                                "could not move user because it was not registered as a player, use key",
-                                await createPlayerBind(data.playerUuid)
-                            );
-                        }
+                        if (userId) bot.move(categoryId, userId, data.regionName ?? "Global");
                     }
                     break;
                 case "Death":

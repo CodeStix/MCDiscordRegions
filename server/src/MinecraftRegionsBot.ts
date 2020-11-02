@@ -1,4 +1,12 @@
-import { CategoryChannel, Channel, Client as DiscordBot, Message, MessageEmbed, VoiceState } from "discord.js";
+import {
+    CategoryChannel,
+    Channel,
+    Client as DiscordBot,
+    GuildMember,
+    Message,
+    MessageEmbed,
+    VoiceState,
+} from "discord.js";
 import { debug } from "debug";
 import { deleteCategory, deleteServer, getServer, registerPlayer, registerServer, revokePlayerBind } from "./redis";
 import { getIGN } from "./minecraft";
@@ -152,23 +160,34 @@ export class MinecraftRegionsBot {
         }
     }
 
-    public async mute(categoryId: string, userId: string, mute: boolean) {
+    private getMember(categoryId: string, userId: string): GuildMember | null {
         let category = this.getCategory(categoryId);
         if (!category) {
             logger("category %s not found", categoryId);
-            return;
+            return null;
         }
-
         let member = category.guild.members.cache.get(userId);
         if (!member) {
             logger("member is not found:", userId);
-            return;
+            return null;
         }
-
         if (!member.voice.channel) {
-            logger("cannot mute member because he/she is not connected to a voice channel");
-            return;
+            logger("cannot kick member because he/she is not connected to a voice channel");
+            return null;
         }
+        return member;
+    }
+
+    public async kick(categoryId: string, userId: string) {
+        const member = this.getMember(categoryId, userId);
+        if (!member) return;
+
+        await member.voice.kick();
+    }
+
+    public async mute(categoryId: string, userId: string, mute: boolean) {
+        const member = this.getMember(categoryId, userId);
+        if (!member) return;
 
         await member.voice.setMute(mute);
     }

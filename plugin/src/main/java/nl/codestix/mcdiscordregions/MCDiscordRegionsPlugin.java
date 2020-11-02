@@ -121,20 +121,20 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
                 getLogger().info("Kicked player " + player.getName());
             }
         }
-        if (getConfig().getBoolean(CONFIG_USE_WHITELIST)) {
+        /*if (getConfig().getBoolean(CONFIG_USE_WHITELIST)) {
             OfflinePlayer player = getServer().getOfflinePlayer(uuid);
             getLogger().info("Un-whitelisted player " + uuid);
             player.setWhitelisted(false);
-        }
+        }*/
     }
 
     @Override
     public void userJoined(UUID uuid) {
-        if (getConfig().getBoolean(CONFIG_USE_WHITELIST)) {
+        /*if (getConfig().getBoolean(CONFIG_USE_WHITELIST)) {
             OfflinePlayer player = getServer().getOfflinePlayer(uuid);
             getLogger().info("Whitelisted player " + player.getName() + " " + uuid);
             player.setWhitelisted(true);
-        }
+        }*/
     }
 
     @Override
@@ -143,13 +143,26 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         if (player == null)
             return;
 
-        String message = String.format("§eHey, %s! This server makes use of Discord regions. If you want to connect your Minecraft account to Discord, enter the following code in any channel in the Discord of this Minecraft server (case sensitive): §f%s", player.getName(), userBindKey);
-        player.sendMessage(message);
-        //getServer().getScheduler().scheduleSyncDelayedTask(this, () -> player.kickPlayer(getConfig().getString(message)));
+        boolean required = getConfig().getBoolean(CONFIG_USE_WHITELIST);
+
+        String message;
+        if (userBindKey == null) {
+            // User is already bound, just needs to be in a Discord channel
+            message = String.format("§eThis server requires you to join their Discord channel before joining.");
+        }
+        else {
+            // User is not yet bound to a Minecraft account
+            message = String.format("§eHey, %s! This server makes use of Discord regions. If you want to connect your Minecraft account to Discord, enter the following code in any channel in the Discord of this Minecraft server (case sensitive): §f%s", player.getName(), userBindKey);
+        }
+
+        if (required)
+            getServer().getScheduler().scheduleSyncDelayedTask(this, () -> player.kickPlayer(message));
+        else
+            player.sendMessage(message);
     }
 
     @Override
-    public void userBoundPlayer(UUID uuid) {
+    public void userBound(UUID uuid) {
         Player player = getServer().getPlayer(uuid);
         if (player == null)
             return;

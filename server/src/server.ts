@@ -2,7 +2,7 @@ require("dotenv").config();
 import WebSocket from "ws";
 import { debug } from "debug";
 import { createPlayerBind, getCategory, getPlayer, getServer, getUser } from "./redis";
-import { JoinMessage, LeftMessage, RequireUserMessage, WebSocketMessage } from "./WebSocketMessage";
+import { BoundMessage, JoinMessage, LeftMessage, RequireUserMessage, WebSocketMessage } from "./WebSocketMessage";
 import { MinecraftRegionsBot, PLAYER_PREFIX } from "./MinecraftRegionsBot";
 
 const logger = debug("mcdr:server");
@@ -41,7 +41,7 @@ bot.onUserBound = async (serverId, userId, uuid) => {
     logger("user got bound for server %s, %s, %s", serverId, userId, uuid);
     let connection = connections.get(serverId);
     if (!connection) return;
-    connection.send(new RequireUserMessage(uuid).asJSON());
+    connection.send(new BoundMessage(uuid).asJSON());
 };
 
 server.on("connection", (client, req) => {
@@ -87,12 +87,17 @@ server.on("connection", (client, req) => {
                 case "Join":
                     {
                         if (!serverId) throw new Error("Not authenticated");
+                        const categoryId = await getCategory(serverId);
+                        if (!categoryId) throw new Error(`No category found for server (${serverId})`);
                         const userId = await getUser(data.playerUuid);
                         if (!userId) {
                             // Generate a temporary key that will be used to bind the Minecraft player to the Discord user
                             let key = await createPlayerBind(data.playerUuid);
                             client.send(new RequireUserMessage(data.playerUuid, PLAYER_PREFIX + key).asJSON());
                             logger("key for player %s: %s", data.playerUuid, key);
+                        } else if (!bot.inCategoryChannel(categoryId, userId)) {
+                            client.send(new RequireUserMessage(data.playerUuid).asJSON());
+                            logger("user needs to be in discord channel");
                         }
                     }
                     break;

@@ -39,6 +39,7 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
             case Left:
             case Respawn:
             case Death:
+            case Bound:
                 return gson.fromJson(json, PlayerBasedMessage.class);
             case RequireUser:
                 return gson.fromJson(json, RequireUserMessage.class);
@@ -91,20 +92,20 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
         WebSocketMessage message = fromJSON(s);
         if (message instanceof RequireUserMessage) {
             RequireUserMessage requireUserMessage = (RequireUserMessage)message;
-            if (requireUserMessage.key == null)
-                listener.userBoundPlayer(UUID.fromString(requireUserMessage.playerUuid));
-            else
-                listener.userRequired(UUID.fromString(requireUserMessage.playerUuid), requireUserMessage.key);
+            listener.userRequired(UUID.fromString(requireUserMessage.playerUuid), requireUserMessage.key);
         }
         else if (message instanceof PlayerBasedMessage) {
             PlayerBasedMessage playerMessage = (PlayerBasedMessage)message;
+            UUID id = UUID.fromString(playerMessage.playerUuid);
             switch (playerMessage.action) {
                 case Join:
-                    listener.userJoined(UUID.fromString(playerMessage.playerUuid));
+                    listener.userJoined(id);
                     break;
                 case Left:
-                    listener.userLeft(UUID.fromString(playerMessage.playerUuid));
+                    listener.userLeft(id);
                     break;
+                case Bound:
+                    listener.userBound(id);
             }
         }
     }

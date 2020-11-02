@@ -230,6 +230,10 @@ export class MinecraftRegionsBot {
         await member.voice.setMute(mute);
     }
 
+    public inCategoryChannel(categoryId: string, userId: string): boolean {
+        return !!this.getVoiceMember(categoryId, userId);
+    }
+
     public async move(categoryId: string, userId: string, channelName: string) {
         let category = this.getCategory(categoryId);
         if (!category) {

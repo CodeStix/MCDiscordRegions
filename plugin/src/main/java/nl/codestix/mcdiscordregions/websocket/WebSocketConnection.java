@@ -92,7 +92,10 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
         WebSocketMessage message = fromJSON(s);
         if (message instanceof RequireUserMessage) {
             RequireUserMessage requireUserMessage = (RequireUserMessage)message;
-            listener.playerRequireUser(UUID.fromString(requireUserMessage.playerUuid), requireUserMessage.key);
+            if (requireUserMessage.key == null)
+                listener.playerRegistered(UUID.fromString(requireUserMessage.playerUuid));
+            else
+                listener.playerRequireUser(UUID.fromString(requireUserMessage.playerUuid), requireUserMessage.key);
         }
         else if (message instanceof PlayerBasedMessage) {
             PlayerBasedMessage playerMessage = (PlayerBasedMessage)message;

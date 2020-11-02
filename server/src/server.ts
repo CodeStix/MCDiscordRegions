@@ -14,23 +14,13 @@ const server = new WebSocket.Server({
 
 let connections = new Map<string, WebSocket>();
 
-/**
- * Returns an active connection to a Minecraft server, or null if no active connection is available.
- * @param categoryId The categoryId the Minecraft server belongs to.
- */
-async function getConnection(categoryId: string): Promise<WebSocket | null> {
-    const serverId = await getServer(categoryId);
-    if (!serverId) return null;
-    return connections.get(serverId) ?? null;
-}
-
 server.once("listening", () => {
     logger(`websocket server is listening on port ${process.env.PORT}`);
 });
 
 const bot = new MinecraftRegionsBot(process.env.DISCORD_TOKEN!);
-bot.onUserLeaveChannel = async (categoryId, userId) => {
-    let connection = await getConnection(categoryId);
+bot.onUserLeaveChannel = async (serverId, userId) => {
+    let connection = connections.get(serverId);
     if (!connection) return;
 
     let playerId = await getPlayer(userId);
@@ -38,14 +28,20 @@ bot.onUserLeaveChannel = async (categoryId, userId) => {
 
     connection.send(new LeftMessage(playerId).asJSON());
 };
-bot.onUserJoinChannel = async (categoryId, userId) => {
-    let connection = await getConnection(categoryId);
+bot.onUserJoinChannel = async (serverId, userId) => {
+    let connection = connections.get(serverId);
     if (!connection) return;
 
     let playerId = await getPlayer(userId);
     if (!playerId) return;
 
     connection.send(new JoinMessage(playerId).asJSON());
+};
+bot.onUserBound = async (serverId, userId, uuid) => {
+    logger("user got bound for server %s, %s, %s", serverId, userId, uuid);
+    let connection = connections.get(serverId);
+    if (!connection) return;
+    connection.send(new RequireUserMessage(uuid).asJSON());
 };
 
 server.on("connection", (client, req) => {

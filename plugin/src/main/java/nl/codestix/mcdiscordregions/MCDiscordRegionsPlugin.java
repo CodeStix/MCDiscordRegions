@@ -145,4 +145,13 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         player.sendMessage(message);
         //getServer().getScheduler().scheduleSyncDelayedTask(this, () -> player.kickPlayer(getConfig().getString(message)));
     }
+
+    @Override
+    public void playerRegistered(UUID uuid) {
+        Player player = getServer().getPlayer(uuid);
+        if (player == null)
+            return;
+
+        player.sendMessage("§aAwesome, your Minecraft account is now connected to your Discord account. You only have to do this once for all servers that use this feature. Enjoy!");
+    }
 }

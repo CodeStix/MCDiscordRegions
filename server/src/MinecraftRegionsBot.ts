@@ -6,10 +6,13 @@ const logger = debug("discord-bot");
 
 export const CATEGORY_PREFIX = "###";
 export const PLAYER_PREFIX = "#";
+export const PLAYER_REGISTER_CHANNEL = "minecraft-bind";
+export const PLAYER_REGISTER_CHANNEL_DESCRIPTION = "Use this channel to bind your Discord tag to your Minecraft name.";
 
 export class MinecraftRegionsBot {
-    public onUserLeaveChannel: (categoryId: string, userId: string) => void = () => {};
-    public onUserJoinChannel: (categoryId: string, userId: string) => void = () => {};
+    public onUserLeaveChannel: (serverId: string, userId: string) => void = () => {};
+    public onUserJoinChannel: (serverId: string, userId: string) => void = () => {};
+    public onUserBound: (serverId: string, userId: string, playerUuid: string) => void = () => {};
     private discord: DiscordBot;
 
     constructor(token: string) {
@@ -28,11 +31,12 @@ export class MinecraftRegionsBot {
         logger("connected to Discord");
     }
 
-    private handleVoiceStateUpdate(state: VoiceState, newState: VoiceState) {
+    private async handleVoiceStateUpdate(state: VoiceState, newState: VoiceState) {
         if (!state.channel || !newState.channel || state.channelID !== newState.channelID) {
             if (state.channel && state.channel.parentID && state.channel.parentID !== newState.channel?.parentID) {
                 // On user left voice channel
-                this.onUserLeaveChannel(state.channel.parentID, state.id);
+                let serverId = await getServer(state.channel.parentID);
+                if (serverId) this.onUserLeaveChannel(serverId, state.id);
             }
             if (
                 newState.channel &&
@@ -40,7 +44,8 @@ export class MinecraftRegionsBot {
                 newState.channel.parentID !== state.channel?.parentID
             ) {
                 // On user join voice channel
-                this.onUserJoinChannel(newState.channel.parentID, state.id);
+                let serverId = await getServer(newState.channel.parentID);
+                if (serverId) this.onUserJoinChannel(serverId, state.id);
             }
         }
     }
@@ -66,12 +71,38 @@ export class MinecraftRegionsBot {
             let serverId = category.name.substring(CATEGORY_PREFIX.length);
             registerServer(serverId, category.id);
             category.setName("Minecraft Regions", "Category got registered as Minecraft Regions category.");
+
+            let registerChannel = category.children.find((e) => e.name === PLAYER_REGISTER_CHANNEL);
+            if (!registerChannel) {
+                category.guild.channels.create(PLAYER_REGISTER_CHANNEL, {
+                    parent: category,
+                    type: "text",
+                    position: 0,
+                    rateLimitPerUser: 20,
+                    topic: PLAYER_REGISTER_CHANNEL_DESCRIPTION,
+                });
+            }
+
             logger(`category (${category.id}) created for server (${serverId})`);
         }
     }
 
     private async handleMessage(message: Message) {
         if (!message.content.startsWith(PLAYER_PREFIX)) return;
+
+        if (message.channel.type !== "text" || !message.channel.parentID) {
+            message.reply(`Please use the #${PLAYER_REGISTER_CHANNEL} channel`);
+            return;
+        }
+
+        const categoryId = message.channel.parentID;
+        const serverId = await getServer(categoryId);
+        if (!serverId) {
+            message.reply(
+                `This channel is not connected to a Minecraft server, please use the #${PLAYER_REGISTER_CHANNEL} channel to register yourself.`
+            );
+            return;
+        }
 
         let key = message.content.substring(PLAYER_PREFIX.length);
         let uuid = await revokePlayerBind(key);
@@ -82,6 +113,7 @@ export class MinecraftRegionsBot {
             logger(`registering player with uuid ${uuid} with userId ${message.author.id}`);
             registerPlayer(uuid, message.author.id);
             message.reply(`Welcome, ${uuid}`);
+            this.onUserBound(serverId, message.author.id, uuid);
         }
     }
 

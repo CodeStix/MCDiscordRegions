@@ -55,9 +55,9 @@ export class RespawnMessage extends PlayerMessage<"Respawn"> {
 }
 
 export class RequireUserMessage extends PlayerMessage<"RequireUser"> {
-    key: string;
+    key?: string;
 
-    constructor(playerUuid: string, key: string) {
+    constructor(playerUuid: string, key?: string) {
         super("RequireUser", playerUuid);
         this.key = key;
     }

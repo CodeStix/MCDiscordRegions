@@ -48,7 +48,10 @@ export class MinecraftRegionsBot {
             if (state.channel && state.channel.parentID && state.channel.parentID !== newState.channel?.parentID) {
                 // On user left voice channel
                 let serverId = await getServer(state.channel.parentID);
-                if (serverId) this.onUserLeaveChannel(serverId, state.id);
+                if (serverId) {
+                    this.handleChannelLeave(state);
+                    this.onUserLeaveChannel(serverId, state.id);
+                }
             }
             if (
                 newState.channel &&
@@ -57,9 +60,31 @@ export class MinecraftRegionsBot {
             ) {
                 // On user join voice channel
                 let serverId = await getServer(newState.channel.parentID);
-                if (serverId) this.onUserJoinChannel(serverId, state.id);
+                if (serverId) {
+                    this.handleChannelJoin(newState);
+                    this.onUserJoinChannel(serverId, state.id);
+                }
             }
         }
+    }
+
+    private async handleChannelLeave(state: VoiceState) {
+        // Allow the user to resume where he left off
+        await state.channel!.overwritePermissions([
+            ...state.channel!.permissionOverwrites.values(),
+            {
+                type: "member",
+                id: state.id,
+                allow: ["CONNECT", "VIEW_CHANNEL"],
+            },
+        ]);
+    }
+
+    private async handleChannelJoin(state: VoiceState) {
+        // Revoke their 'resume' permissions
+        await state.channel!.overwritePermissions(
+            state.channel!.permissionOverwrites.filter((e) => !(e.type === "member" && e.id === state.id))
+        );
     }
 
     private async handleChannelUpdate(channel: Channel, newChannel: Channel) {
@@ -163,7 +188,7 @@ export class MinecraftRegionsBot {
         }
     }
 
-    private getMember(categoryId: string, userId: string): GuildMember | null {
+    private getVoiceMember(categoryId: string, userId: string): GuildMember | null {
         let category = this.getCategory(categoryId);
         if (!category) {
             logger("category %s not found", categoryId);
@@ -192,14 +217,14 @@ export class MinecraftRegionsBot {
     }
 
     public async kick(categoryId: string, userId: string) {
-        const member = this.getMember(categoryId, userId);
+        const member = this.getVoiceMember(categoryId, userId);
         if (!member) return;
 
         await member.voice.kick();
     }
 
     public async mute(categoryId: string, userId: string, mute: boolean) {
-        const member = this.getMember(categoryId, userId);
+        const member = this.getVoiceMember(categoryId, userId);
         if (!member) return;
 
         await member.voice.setMute(mute);

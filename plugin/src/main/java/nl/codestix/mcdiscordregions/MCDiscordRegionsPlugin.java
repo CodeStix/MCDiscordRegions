@@ -14,6 +14,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -65,16 +66,16 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         }
 
         // Connect to Discord Bot
-        String host = getConfig().getString(CONFIG_HOST, "ws://172.18.168.254:8080");
+        String host = getConfig().getString(CONFIG_HOST, "ws://localhost:8080");
         getLogger().info("Connecting to Discord Regions bot at " + host);
         try {
             connection = new WebSocketConnection(new URI(host), this, serverId );
         } catch (URISyntaxException e) {
-            getLogger().severe("Could not connect to websocket, invalid host: " + host);
+            getLogger().severe("Could not connect to Discord bot, invalid host: " + host);
             getPluginLoader().disablePlugin(this);
             return;
-        } catch(InterruptedException e) {
-            getLogger().severe("Could not connect to websocket: " + e.getMessage());
+        } catch(InterruptedException | WebsocketNotConnectedException e) {
+            getLogger().severe("Could not connect to Discord bot: " + e.getMessage());
             getPluginLoader().disablePlugin(this);
             return;
         }

@@ -18,6 +18,7 @@ export class MinecraftRegionsBot {
         this.discord.on("voiceStateUpdate", this.handleVoiceStateUpdate.bind(this));
         this.discord.on("channelDelete", this.handleChannelDelete.bind(this));
         this.discord.on("channelCreate", this.handleChannelCreate.bind(this));
+        this.discord.on("channelUpdate", this.handleChannelUpdate.bind(this));
         this.discord.on("message", this.handleMessage.bind(this));
         this.discord.login(token);
     }
@@ -41,6 +42,10 @@ export class MinecraftRegionsBot {
                 this.onUserJoinChannel(newState.channel.parentID, state.id);
             }
         }
+    }
+
+    private async handleChannelUpdate(channel: Channel, newChannel: Channel) {
+        this.handleChannelCreate(newChannel);
     }
 
     private async handleChannelDelete(channel: Channel) {

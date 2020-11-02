@@ -18,6 +18,8 @@ import org.java_websocket.exceptions.WebsocketNotConnectedException;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents {
@@ -109,7 +111,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     }
 
     @Override
-    public void playerLeft(UUID uuid) {
+    public void userLeft(UUID uuid) {
         if (getConfig().getBoolean(CONFIG_KICK_DISCORD_LEAVE)) {
             Player player = getServer().getPlayer(uuid);
             if (player != null)
@@ -121,22 +123,22 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         }
         if (getConfig().getBoolean(CONFIG_USE_WHITELIST)) {
             OfflinePlayer player = getServer().getOfflinePlayer(uuid);
+            getLogger().info("Un-whitelisted player " + uuid);
             player.setWhitelisted(false);
-            getLogger().info("Un-whitelisted player " + player.getUniqueId());
         }
     }
 
     @Override
-    public void playerJoin(UUID uuid) {
+    public void userJoined(UUID uuid) {
         if (getConfig().getBoolean(CONFIG_USE_WHITELIST)) {
             OfflinePlayer player = getServer().getOfflinePlayer(uuid);
-            player.setWhitelisted(true);
             getLogger().info("Whitelisted player " + player.getName() + " " + uuid);
+            player.setWhitelisted(true);
         }
     }
 
     @Override
-    public void playerRequireUser(UUID uuid, String userBindKey) {
+    public void userRequired(UUID uuid, String userBindKey) {
         Player player = getServer().getPlayer(uuid);
         if (player == null)
             return;
@@ -147,7 +149,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     }
 
     @Override
-    public void playerRegistered(UUID uuid) {
+    public void userBoundPlayer(UUID uuid) {
         Player player = getServer().getPlayer(uuid);
         if (player == null)
             return;

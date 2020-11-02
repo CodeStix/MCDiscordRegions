@@ -5,7 +5,6 @@ import nl.codestix.mcdiscordregions.DiscordConnection;
 import nl.codestix.mcdiscordregions.DiscordEvents;
 import nl.codestix.mcdiscordregions.websocket.messages.*;
 import org.bukkit.Bukkit;
-import org.java_websocket.WebSocket;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
@@ -93,18 +92,18 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
         if (message instanceof RequireUserMessage) {
             RequireUserMessage requireUserMessage = (RequireUserMessage)message;
             if (requireUserMessage.key == null)
-                listener.playerRegistered(UUID.fromString(requireUserMessage.playerUuid));
+                listener.userBoundPlayer(UUID.fromString(requireUserMessage.playerUuid));
             else
-                listener.playerRequireUser(UUID.fromString(requireUserMessage.playerUuid), requireUserMessage.key);
+                listener.userRequired(UUID.fromString(requireUserMessage.playerUuid), requireUserMessage.key);
         }
         else if (message instanceof PlayerBasedMessage) {
             PlayerBasedMessage playerMessage = (PlayerBasedMessage)message;
             switch (playerMessage.action) {
                 case Join:
-                    listener.playerJoin(UUID.fromString(playerMessage.playerUuid));
+                    listener.userJoined(UUID.fromString(playerMessage.playerUuid));
                     break;
                 case Left:
-                    listener.playerLeft(UUID.fromString(playerMessage.playerUuid));
+                    listener.userLeft(UUID.fromString(playerMessage.playerUuid));
                     break;
             }
         }

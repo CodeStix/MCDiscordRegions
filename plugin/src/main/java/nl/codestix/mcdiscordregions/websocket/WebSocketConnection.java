@@ -41,6 +41,8 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
             case Respawn:
             case Death:
                 return gson.fromJson(json, PlayerBasedMessage.class);
+            case RequireUser:
+                return gson.fromJson(json, RequireUserMessage.class);
             default:
                 return null;
         }
@@ -88,7 +90,11 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     @Override
     public void onMessage(String s) {
         WebSocketMessage message = fromJSON(s);
-        if (message instanceof PlayerBasedMessage) {
+        if (message instanceof RequireUserMessage) {
+            RequireUserMessage requireUserMessage = (RequireUserMessage)message;
+            listener.playerRequireUser(UUID.fromString(requireUserMessage.playerUuid), requireUserMessage.key);
+        }
+        else if (message instanceof PlayerBasedMessage) {
             PlayerBasedMessage playerMessage = (PlayerBasedMessage)message;
             switch (playerMessage.action) {
                 case Join:

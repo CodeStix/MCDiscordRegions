@@ -57,7 +57,7 @@ export async function getPlayer(userId: string) {
  * @param forUuid The player's uuid
  */
 export function createPlayerBind(forUuid: string): string {
-    const key = nanoid(6);
+    const key = nanoid(4);
     client.setex(`playerbind:${key}`, 60 * 60, forUuid);
     return key;
 }

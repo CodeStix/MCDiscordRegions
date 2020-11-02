@@ -3,8 +3,9 @@ import { debug } from "debug";
 import { deleteCategory, deleteServer, getServer, registerPlayer, registerServer, revokePlayerBind } from "./redis";
 
 const logger = debug("discord-bot");
-const CATEGORY_PREFIX = "###";
-const PLAYER_PREFIX = "#";
+
+export const CATEGORY_PREFIX = "###";
+export const PLAYER_PREFIX = "#";
 
 export class MinecraftRegionsBot {
     public onUserLeaveChannel: (categoryId: string, userId: string) => void = () => {};

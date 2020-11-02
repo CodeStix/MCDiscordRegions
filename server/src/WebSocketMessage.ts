@@ -1,4 +1,4 @@
-export type RegionMessageType = "Move" | "Join" | "Left" | "Death" | "Respawn" | "Auth";
+export type RegionMessageType = "Move" | "Join" | "Left" | "Death" | "Respawn" | "Auth" | "RequireUser";
 
 class Message<T extends RegionMessageType> {
     action: T;
@@ -51,6 +51,15 @@ export class DeathMessage extends PlayerMessage<"Death"> {
 export class RespawnMessage extends PlayerMessage<"Respawn"> {
     constructor(playerUuid: string) {
         super("Respawn", playerUuid);
+    }
+}
+
+export class RequireUserMessage extends PlayerMessage<"RequireUser"> {
+    key: string;
+
+    constructor(playerUuid: string, key: string) {
+        super("RequireUser", playerUuid);
+        this.key = key;
     }
 }
 

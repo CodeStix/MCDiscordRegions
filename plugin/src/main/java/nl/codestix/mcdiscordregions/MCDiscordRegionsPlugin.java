@@ -134,4 +134,15 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
             getLogger().info("Whitelisted player " + player.getName() + " " + uuid);
         }
     }
+
+    @Override
+    public void playerRequireUser(UUID uuid, String userBindKey) {
+        Player player = getServer().getPlayer(uuid);
+        if (player == null)
+            return;
+
+        String message = String.format("§eHey, %s! This server makes use of Discord regions. If you want to connect your Minecraft account to Discord, enter the following code in any channel in the Discord of this Minecraft server (case sensitive): §f%s", player.getName(), userBindKey);
+        player.sendMessage(message);
+        //getServer().getScheduler().scheduleSyncDelayedTask(this, () -> player.kickPlayer(getConfig().getString(message)));
+    }
 }

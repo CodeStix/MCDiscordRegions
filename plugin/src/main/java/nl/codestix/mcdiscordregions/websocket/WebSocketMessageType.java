@@ -6,5 +6,6 @@ public enum WebSocketMessageType {
     Left,
     Death,
     Respawn,
-    Auth
+    Auth,
+    RequireUser
 }

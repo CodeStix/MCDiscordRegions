@@ -2,8 +2,8 @@ require("dotenv").config();
 import WebSocket from "ws";
 import { debug } from "debug";
 import { createPlayerBind, getCategory, getPlayer, getServer, getUser } from "./redis";
-import { JoinMessage, LeftMessage, WebSocketMessage } from "./WebSocketMessage";
-import { MinecraftRegionsBot } from "./MinecraftRegionsBot";
+import { JoinMessage, LeftMessage, RequireUserMessage, WebSocketMessage } from "./WebSocketMessage";
+import { MinecraftRegionsBot, PLAYER_PREFIX } from "./MinecraftRegionsBot";
 
 const logger = debug("websocket");
 
@@ -86,6 +86,18 @@ server.on("connection", (client, req) => {
                         serverId = data.serverId;
                         connections.set(serverId, client);
                         clientLogger("authenticated as %s", serverId);
+                    }
+                    break;
+                case "Join":
+                    {
+                        if (!serverId) throw new Error("Not authenticated");
+                        const userId = await getUser(data.playerUuid);
+                        if (!userId) {
+                            // Generate a temporary key that will be used to bind the Minecraft player to the Discord user
+                            let key = await createPlayerBind(data.playerUuid);
+                            client.send(new RequireUserMessage(data.playerUuid, PLAYER_PREFIX + key).asJSON());
+                            logger("key for player %s: %s", data.playerUuid, key);
+                        }
                     }
                     break;
                 case "Move":

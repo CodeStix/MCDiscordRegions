@@ -121,20 +121,12 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
                 getLogger().info("Kicked player " + player.getName());
             }
         }
-        /*if (getConfig().getBoolean(CONFIG_USE_WHITELIST)) {
-            OfflinePlayer player = getServer().getOfflinePlayer(uuid);
-            getLogger().info("Un-whitelisted player " + uuid);
-            player.setWhitelisted(false);
-        }*/
+
     }
 
     @Override
     public void userJoined(UUID uuid) {
-        /*if (getConfig().getBoolean(CONFIG_USE_WHITELIST)) {
-            OfflinePlayer player = getServer().getOfflinePlayer(uuid);
-            getLogger().info("Whitelisted player " + player.getName() + " " + uuid);
-            player.setWhitelisted(true);
-        }*/
+        // User joined Discord channel
     }
 
     @Override
@@ -148,11 +140,18 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         String message;
         if (userBindKey == null) {
             // User is already bound, just needs to be in a Discord channel
-            message = String.format("§eThis server requires you to join their Discord channel before joining.");
+            if (required)
+                message = "§eThis server requires you to join their Discord Minecraft channels before joining.";
+            else
+                message = "§eThis server makes use of Discord regions, join a Minecraft Regions Discord channel to use this feature.";
+
         }
         else {
             // User is not yet bound to a Minecraft account
-            message = String.format("§eHey, %s! This server makes use of Discord regions. If you want to connect your Minecraft account to Discord, enter the following code in any channel in the Discord of this Minecraft server (case sensitive): §f%s", player.getName(), userBindKey);
+            if (required)
+                message = String.format("This server requires you to join their Discord Minecraft channels before joining. Connect your Minecraft account to Discord by entering the following code in the #minecraft-bind channel (case sensitive): §f%s", userBindKey);
+            else
+                message = String.format("This server makes use of Discord regions. If you want to connect your Minecraft account to Discord, enter the following code in any channel in the Discord of this Minecraft server (case sensitive): §f%s", userBindKey);
         }
 
         if (required)

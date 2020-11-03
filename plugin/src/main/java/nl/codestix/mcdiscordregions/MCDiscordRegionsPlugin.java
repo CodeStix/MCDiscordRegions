@@ -26,6 +26,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
     public RegionListener regionListener;
     public PlayerListener playerListener;
+    public DiscordConnection connection;
+    public DiscordRegionsCommand command;
 
     public static final String CONFIG_HOST = "host";
     public static final String CONFIG_ID = "id";
@@ -37,7 +39,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
     private StringFlag discordChannelFlag = new StringFlag("discord-channel");
     private WorldGuardHandler.Factory worldGuardHandlerFactory;
-    private DiscordConnection connection;
     private String serverId;
 
     private static MCDiscordRegionsPlugin instance;
@@ -96,7 +97,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         Bukkit.getPluginManager().registerEvents(playerListener, this);
 
         // Configure commands
-        getCommand("dregion").setExecutor(new DiscordRegionsCommand(this));
+        command = new DiscordRegionsCommand(this);
+        getCommand("dregion").setExecutor(command);
 
         getLogger().info("Is configured correctly!");
         instance = this;
@@ -167,5 +169,15 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
             return;
 
         player.sendMessage("§aAwesome, your Minecraft account is now connected to your Discord account. You only have to do this once for all servers that use this feature. Enjoy!");
+    }
+
+    @Override
+    public void regionGotLimited(String regionName, int limit) {
+        command.regionGotLimited(regionName, limit);
+    }
+
+    @Override
+    public void regionLimitFailed(String regionName) {
+        command.regionLimitFailed(regionName);
     }
 }

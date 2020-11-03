@@ -2,7 +2,14 @@ require("dotenv").config();
 import WebSocket from "ws";
 import { debug } from "debug";
 import { createPlayerBind, getCategory, getPlayer, getServer, getUser, rateLimit } from "./redis";
-import { BoundMessage, JoinMessage, LeftMessage, RequireUserMessage, WebSocketMessage } from "./WebSocketMessage";
+import {
+    BoundMessage,
+    JoinMessage,
+    LeftMessage,
+    LimitMessage,
+    RequireUserMessage,
+    WebSocketMessage,
+} from "./WebSocketMessage";
 import { MinecraftRegionsBot, PLAYER_PREFIX } from "./MinecraftRegionsBot";
 
 const logger = debug("mcdr:server");
@@ -112,7 +119,7 @@ server.on("connection", (client, req) => {
                         const categoryId = await getCategory(serverId);
                         if (!categoryId) throw new Error(`No category found for server (${serverId})`);
                         const userId = await getUser(data.playerUuid);
-                        if (userId) bot.kick(categoryId, userId);
+                        if (userId) await bot.kick(categoryId, userId);
                     }
                     break;
                 case "Move":
@@ -121,7 +128,7 @@ server.on("connection", (client, req) => {
                         const categoryId = await getCategory(serverId);
                         if (!categoryId) throw new Error(`No category found for server (${serverId})`);
                         const userId = await getUser(data.playerUuid);
-                        if (userId) bot.move(categoryId, userId, data.regionName ?? "Global");
+                        if (userId) await bot.move(categoryId, userId, data.regionName ?? "Global");
                     }
                     break;
                 case "Death":
@@ -130,7 +137,7 @@ server.on("connection", (client, req) => {
                         const categoryId = await getCategory(serverId);
                         if (!categoryId) throw new Error(`No category found for server (${serverId})`);
                         const userId = await getUser(data.playerUuid);
-                        if (userId) bot.mute(categoryId, userId, true);
+                        if (userId) await bot.mute(categoryId, userId, true);
                     }
                     break;
                 case "Respawn":
@@ -139,7 +146,16 @@ server.on("connection", (client, req) => {
                         const categoryId = await getCategory(serverId);
                         if (!categoryId) throw new Error(`No category found for server (${serverId})`);
                         const userId = await getUser(data.playerUuid);
-                        if (userId) bot.mute(categoryId, userId, false);
+                        if (userId) await bot.mute(categoryId, userId, false);
+                    }
+                    break;
+                case "Limit":
+                    {
+                        if (!serverId) throw new Error("Not authenticated");
+                        const categoryId = await getCategory(serverId);
+                        if (!categoryId) throw new Error(`No category found for server (${serverId})`);
+                        let result = await bot.limit(categoryId, data.regionName, data.limit);
+                        client.send(new LimitMessage(data.regionName, result ? data.limit : -1).asJSON());
                     }
                     break;
                 default:

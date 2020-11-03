@@ -8,9 +8,18 @@ import org.bukkit.command.CommandSender;
 public class DiscordRegionsCommand implements CommandExecutor
 {
     private MCDiscordRegionsPlugin plugin;
+    private CommandSender previousSender;
 
     public DiscordRegionsCommand(MCDiscordRegionsPlugin plugin) {
         this.plugin = plugin;
+    }
+
+    public void regionGotLimited(String regionName, int limit) {
+        previousSender.sendMessage("§dSet the limit for " + regionName + " to " + limit);
+    }
+
+    public void regionLimitFailed(String regionName) {
+        previousSender.sendMessage("§cCould not set limit for region " + regionName);
     }
 
     public String join(String delimiter, int start, String... strings) {
@@ -25,6 +34,7 @@ public class DiscordRegionsCommand implements CommandExecutor
 
     @Override
     public boolean onCommand(CommandSender commandSender, Command command, String s, String[] strings) {
+        previousSender = commandSender;
 
         if (strings.length == 1 && strings[0].equalsIgnoreCase("save")) {
             plugin.saveConfig();
@@ -49,8 +59,10 @@ public class DiscordRegionsCommand implements CommandExecutor
             commandSender.sendMessage("§dKick message: " + plugin.getConfig().getString(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE_MESSAGE));
             return true;
         }
-        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("limit")) {
-            commandSender.sendMessage("§cNot implemented yet.");
+        else if (strings.length >= 3 && strings[0].equalsIgnoreCase("limit")) {
+            int limit = Integer.parseInt(strings[1]);
+            String regionName = join(" ", 2, strings);
+            plugin.connection.limitRegion(regionName, limit);
             return true;
         }
 

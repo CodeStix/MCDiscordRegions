@@ -43,6 +43,8 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
                 return gson.fromJson(json, PlayerBasedMessage.class);
             case RequireUser:
                 return gson.fromJson(json, RequireUserMessage.class);
+            case Limit:
+                return gson.fromJson(json, LimitMessage.class);
             default:
                 return null;
         }
@@ -83,6 +85,11 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     }
 
     @Override
+    public void limitRegion(String regionName, int limit) {
+        send(new LimitMessage(regionName, limit));
+    }
+
+    @Override
     public void onOpen(ServerHandshake handshake) {
         // Setup
     }
@@ -93,6 +100,13 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
         if (message instanceof RequireUserMessage) {
             RequireUserMessage requireUserMessage = (RequireUserMessage)message;
             listener.userRequired(UUID.fromString(requireUserMessage.playerUuid), requireUserMessage.key);
+        }
+        else if (message instanceof LimitMessage) {
+            LimitMessage limitMessage = (LimitMessage)message;
+            if (limitMessage.limit < 0)
+                listener.regionLimitFailed(limitMessage.regionName);
+            else
+                listener.regionGotLimited(limitMessage.regionName, limitMessage.limit);
         }
         else if (message instanceof PlayerBasedMessage) {
             PlayerBasedMessage playerMessage = (PlayerBasedMessage)message;
@@ -106,6 +120,7 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
                     break;
                 case Bound:
                     listener.userBound(id);
+                    break;
             }
         }
     }

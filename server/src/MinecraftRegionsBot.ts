@@ -278,13 +278,13 @@ export class MinecraftRegionsBot {
     public async move(categoryId: string, userId: string, channelName: string) {
         let category = this.getCategory(categoryId);
         if (!category) {
-            logger("category %s not found", categoryId);
+            logger("move category %s not found", categoryId);
             return;
         }
 
         let member = category.guild.members.cache.get(userId);
         if (!member) {
-            logger("member is not found:", userId);
+            logger("move member is not found:", userId);
             return;
         }
 
@@ -295,5 +295,23 @@ export class MinecraftRegionsBot {
 
         let moveChannel = await this.getOrCreateRegionChannel(category, channelName);
         await member.voice.setChannel(moveChannel, "Moved to this location in Minecraft");
+    }
+
+    public async limit(categoryId: string, regionName: string, userLimit: number) {
+        let category = this.getCategory(categoryId);
+        if (!category) {
+            logger("limit category %s not found", categoryId);
+            return false;
+        }
+
+        let channel = category.children.find((e) => e.name === regionName) as VoiceChannel;
+        if (!channel || channel.type !== "voice") {
+            logger("limit channel not found");
+            return false;
+        }
+
+        await channel.setUserLimit(userLimit);
+        logger("set limit for channel %s to %d", regionName, userLimit);
+        return true;
     }
 }

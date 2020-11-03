@@ -1,4 +1,13 @@
-export type RegionMessageType = "Move" | "Join" | "Left" | "Death" | "Respawn" | "Auth" | "RequireUser" | "Bound";
+export type RegionMessageType =
+    | "Move"
+    | "Join"
+    | "Left"
+    | "Death"
+    | "Respawn"
+    | "Auth"
+    | "RequireUser"
+    | "Bound"
+    | "Limit";
 
 class Message<T extends RegionMessageType> {
     action: T;
@@ -106,6 +115,21 @@ export class BoundMessage extends PlayerMessage<"Bound"> {
     }
 }
 
+/**
+ * A message sent from the server to the bot to tell the bot that a region should have a limited amount of people in it
+ * A message sent from the bot to the server to tell that the limit for a region has modified using the Discord UI.
+ */
+export class LimitMessage extends Message<"Limit"> {
+    regionName: string;
+    limit: number;
+
+    constructor(regionName: string, limit: number) {
+        super("Limit");
+        this.regionName = regionName;
+        this.limit = limit;
+    }
+}
+
 export type WebSocketMessage =
     | MoveMessage
     | JoinMessage
@@ -113,4 +137,5 @@ export type WebSocketMessage =
     | LeftMessage
     | RespawnMessage
     | AuthMessage
-    | BoundMessage;
+    | BoundMessage
+    | LimitMessage;

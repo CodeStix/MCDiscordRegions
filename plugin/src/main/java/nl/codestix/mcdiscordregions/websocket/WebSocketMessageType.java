@@ -8,5 +8,6 @@ public enum WebSocketMessageType {
     Respawn,
     Auth,
     RequireUser,
-    Bound
+    Bound,
+    Limit
 }

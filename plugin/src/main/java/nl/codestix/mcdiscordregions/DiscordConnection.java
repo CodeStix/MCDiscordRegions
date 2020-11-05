@@ -10,5 +10,6 @@ public interface DiscordConnection {
     void respawn(UUID uuid);
     void regionMove(UUID uuid, String regionName);
     void limitRegion(String regionName, int limit);
+    void unbind(UUID uuid);
     void close();
 }

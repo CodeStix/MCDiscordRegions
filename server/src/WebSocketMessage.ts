@@ -7,7 +7,8 @@ export type RegionMessageType =
     | "Auth"
     | "RequireUser"
     | "Bound"
-    | "Limit";
+    | "Limit"
+    | "UnBind";
 
 class Message<T extends RegionMessageType> {
     action: T;
@@ -130,6 +131,12 @@ export class LimitMessage extends Message<"Limit"> {
     }
 }
 
+export class UnBindMessage extends PlayerMessage<"UnBind"> {
+    constructor(playerUuid: string) {
+        super("UnBind", playerUuid);
+    }
+}
+
 export type WebSocketMessage =
     | MoveMessage
     | JoinMessage
@@ -138,4 +145,6 @@ export type WebSocketMessage =
     | RespawnMessage
     | AuthMessage
     | BoundMessage
-    | LimitMessage;
+    | LimitMessage
+    | UnBindMessage
+    | RequireUserMessage;

@@ -9,5 +9,6 @@ public enum WebSocketMessageType {
     Auth,
     RequireUser,
     Bound,
-    Limit
+    Limit,
+    UnBind
 }

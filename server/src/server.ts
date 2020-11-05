@@ -1,7 +1,16 @@
 require("dotenv").config();
 import WebSocket from "ws";
 import { debug } from "debug";
-import { createPlayerBind, getCategory, getPlayer, getServer, getUser, rateLimit } from "./redis";
+import {
+    createPlayerBind,
+    deletePlayer,
+    deleteUser,
+    getCategory,
+    getPlayer,
+    getServer,
+    getUser,
+    rateLimit,
+} from "./redis";
 import {
     BoundMessage,
     JoinMessage,
@@ -169,6 +178,14 @@ server.on("connection", (client, req) => {
                         if (!categoryId) throw new Error(`No category found for server (${serverId})`);
                         let result = await bot.limit(categoryId, data.regionName, data.limit);
                         client.send(new LimitMessage(data.regionName, result ? data.limit : -1).asJSON());
+                    }
+                    break;
+                case "UnBind":
+                    {
+                        const userId = await getUser(data.playerUuid);
+                        if (!userId) return;
+                        await deletePlayer(data.playerUuid);
+                        await deleteUser(userId);
                     }
                     break;
                 default:

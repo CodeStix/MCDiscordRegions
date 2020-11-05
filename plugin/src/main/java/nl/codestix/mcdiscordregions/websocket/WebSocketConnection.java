@@ -90,6 +90,11 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     }
 
     @Override
+    public void unbind(UUID uuid) {
+        send(new UnBindMessage(uuid.toString()));
+    }
+
+    @Override
     public void onOpen(ServerHandshake handshake) {
         // Setup
     }

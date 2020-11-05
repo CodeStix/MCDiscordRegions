@@ -47,6 +47,14 @@ export function deleteServer(serverId: string) {
     client.del(`server:${serverId}`);
 }
 
+export function deletePlayer(playerUuid: string) {
+    client.del(`player:${playerUuid}`);
+}
+
+export function deleteUser(userId: string) {
+    client.del(`user:${userId}`);
+}
+
 export async function getCategory(serverId: string) {
     return await getAsync(`server:${serverId}`);
 }

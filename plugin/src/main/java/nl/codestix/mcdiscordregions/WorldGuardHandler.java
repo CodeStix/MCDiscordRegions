@@ -11,6 +11,7 @@ import com.sk89q.worldguard.session.MoveType;
 import com.sk89q.worldguard.session.Session;
 import com.sk89q.worldguard.session.handler.Handler;
 import nl.codestix.mcdiscordregions.event.RegionChangeEvent;
+import nl.codestix.mcdiscordregions.event.RegionInitializeEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -20,10 +21,19 @@ import java.util.UUID;
 
 public class WorldGuardHandler extends Handler {
 
-    private HashMap<UUID, ProtectedRegion> regionsPerPlayer = new HashMap<>();
+    private static HashMap<UUID, ProtectedRegion> regionsPerPlayer = new HashMap<>();
 
     public WorldGuardHandler(Session session) {
         super(session);
+    }
+
+    @Override
+    public void initialize(LocalPlayer player, Location current, ApplicableRegionSet set) {
+        ProtectedRegion region = set.size() == 0 ? null : set.iterator().next();
+        regionsPerPlayer.put(player.getUniqueId(), region);
+        RegionInitializeEvent ev = new RegionInitializeEvent(Bukkit.getPlayer(player.getUniqueId()), region);
+        Bukkit.getPluginManager().callEvent(ev);
+        super.initialize(player, current, set);
     }
 
     @Override
@@ -42,8 +52,12 @@ public class WorldGuardHandler extends Handler {
     }
 
     public static ApplicableRegionSet getPlayerRegions(Player player) {
-        RegionQuery q =  WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery();
+        RegionQuery q = WorldGuard.getInstance().getPlatform().getRegionContainer().createQuery();
         return q.getApplicableRegions(BukkitAdapter.adapt(player.getLocation()));
+    }
+
+    public static ProtectedRegion getPlayerRegion(Player player) {
+        return regionsPerPlayer.get(player.getUniqueId());
     }
 
     public static class Factory extends Handler.Factory<WorldGuardHandler> {

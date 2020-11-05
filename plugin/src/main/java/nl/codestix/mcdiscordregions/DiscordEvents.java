@@ -9,4 +9,5 @@ public interface DiscordEvents {
     void userBound(UUID uuid);
     void regionGotLimited(String regionName, int limit);
     void regionLimitFailed(String regionName);
+    void regionLimitReached(UUID uuid, String regionName);
 }

@@ -108,6 +108,10 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
             else
                 listener.regionGotLimited(limitMessage.regionName, limitMessage.limit);
         }
+        else if (message instanceof MoveMessage) {
+            MoveMessage moveMessage = (MoveMessage)message;
+            listener.regionLimitReached(UUID.fromString(moveMessage.playerUuid), moveMessage.regionName);
+        }
         else if (message instanceof PlayerBasedMessage) {
             PlayerBasedMessage playerMessage = (PlayerBasedMessage)message;
             UUID id = UUID.fromString(playerMessage.playerUuid);

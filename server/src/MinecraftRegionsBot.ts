@@ -279,22 +279,23 @@ export class MinecraftRegionsBot {
         let category = this.getCategory(categoryId);
         if (!category) {
             logger("move category %s not found", categoryId);
-            return;
+            return false;
         }
 
         let member = category.guild.members.cache.get(userId);
         if (!member) {
             logger("move member is not found:", userId);
-            return;
+            return false;
         }
 
         if (!member.voice.channel) {
             logger("cannot move member because he/she is not connected to a voice channel");
-            return;
+            return false;
         }
 
         let moveChannel = await this.getOrCreateRegionChannel(category, channelName);
         await member.voice.setChannel(moveChannel, "Moved to this location in Minecraft");
+        return moveChannel.userLimit === 0 || moveChannel.members.size < moveChannel.userLimit;
     }
 
     public async limit(categoryId: string, regionName: string, userLimit: number) {

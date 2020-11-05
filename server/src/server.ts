@@ -7,6 +7,7 @@ import {
     JoinMessage,
     LeftMessage,
     LimitMessage,
+    MoveMessage,
     RequireUserMessage,
     WebSocketMessage,
 } from "./WebSocketMessage";
@@ -128,7 +129,12 @@ server.on("connection", (client, req) => {
                         const categoryId = await getCategory(serverId);
                         if (!categoryId) throw new Error(`No category found for server (${serverId})`);
                         const userId = await getUser(data.playerUuid);
-                        if (userId) await bot.move(categoryId, userId, data.regionName ?? "Global");
+                        if (!userId) throw new Error("No user found");
+                        let result = await bot.move(categoryId, userId, data.regionName ?? "Global");
+                        if (!result) {
+                            // Respond with Move message to tell that the move was unsuccessful
+                            client.send(new MoveMessage(data.playerUuid, data.regionName).asJSON());
+                        }
                     }
                     break;
                 case "Death":

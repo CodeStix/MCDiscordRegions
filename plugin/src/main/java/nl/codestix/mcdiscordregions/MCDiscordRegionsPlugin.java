@@ -180,4 +180,9 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     public void regionLimitFailed(String regionName) {
         command.regionLimitFailed(regionName);
     }
+
+    @Override
+    public void regionLimitReached(UUID uuid, String regionName) {
+         regionListener.fullRegion(regionName);
+    }
 }

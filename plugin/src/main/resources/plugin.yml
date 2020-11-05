@@ -10,3 +10,19 @@ commands:
    aliases: [drg]
    description: Configure the MCDiscordRegions plugin.
    usage: /dregion [whitelist [on|off] | kick [on|off] [kickMessage...] | limit <maxUsers> <channelName...> | save]
+
+permissions:
+  discordregions.*:
+    description: Permission to use all the subcommands.
+    default: false
+    children:
+      discordregions.modify: true
+      discordregions.unbound: true
+
+  discordregions.modify:
+    description: Permission use the /drg command to modify settings.
+    default: op
+
+  discordregions.unbound:
+    description: Permission to use the /nodiscord command. Which unbounds Discord from Minecraft.
+    default: true

@@ -36,6 +36,9 @@ public class DiscordRegionsCommand implements CommandExecutor
     public boolean onCommand(CommandSender commandSender, Command command, String s, String[] strings) {
         previousSender = commandSender;
 
+        if (!commandSender.hasPermission("discordregions.modify"))
+            return false;
+
         if (strings.length == 1 && strings[0].equalsIgnoreCase("save")) {
             plugin.saveConfig();
             commandSender.sendMessage("§dSettings were written to config file.");

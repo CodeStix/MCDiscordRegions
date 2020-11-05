@@ -128,7 +128,11 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
     @Override
     public void userJoined(UUID uuid) {
-        // User joined Discord channel
+        // User joined Discord channel, send the join message back, this will cause un-deafen
+        Player pl = getServer().getPlayer(uuid);
+        if (pl != null) {
+            connection.join(pl.getUniqueId());
+        }
     }
 
     @Override

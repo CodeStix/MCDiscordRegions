@@ -27,7 +27,7 @@ server.once("listening", () => {
 });
 
 const bot = new MinecraftRegionsBot(process.env.DISCORD_TOKEN!);
-bot.onUserLeaveChannel = async (serverId, userId) => {
+bot.onUserLeaveChannel = async (serverId, categoryId, userId) => {
     let connection = connections.get(serverId);
     if (!connection) return;
 
@@ -36,19 +36,24 @@ bot.onUserLeaveChannel = async (serverId, userId) => {
 
     connection.send(new LeftMessage(playerId).asJSON());
 };
-bot.onUserJoinChannel = async (serverId, userId) => {
+bot.onUserJoinChannel = async (serverId, categoryId, userId) => {
     let connection = connections.get(serverId);
     if (!connection) return;
 
     let playerId = await getPlayer(userId);
     if (!playerId) return;
 
+    await bot.deafen(categoryId, userId, true);
+
     connection.send(new JoinMessage(playerId).asJSON());
 };
-bot.onUserBound = async (serverId, userId, uuid) => {
+bot.onUserBound = async (serverId, categoryId, userId, uuid) => {
     logger("user got bound for server %s, %s, %s", serverId, userId, uuid);
     let connection = connections.get(serverId);
     if (!connection) return;
+
+    await bot.deafen(categoryId, userId, true);
+
     connection.send(new BoundMessage(uuid).asJSON());
 };
 
@@ -111,6 +116,8 @@ server.on("connection", (client, req) => {
                         } else if (!bot.inCategoryChannel(categoryId, userId)) {
                             client.send(new RequireUserMessage(data.playerUuid).asJSON());
                             logger("user needs to be in discord channel");
+                        } else {
+                            await bot.deafen(categoryId, userId, false);
                         }
                     }
                     break;

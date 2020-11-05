@@ -11,7 +11,15 @@ import {
     VoiceState,
 } from "discord.js";
 import { debug } from "debug";
-import { deleteCategory, deleteServer, getServer, registerPlayer, registerServer, revokePlayerBind } from "./redis";
+import {
+    deleteCategory,
+    deleteServer,
+    getPlayer,
+    getServer,
+    registerPlayer,
+    registerServer,
+    revokePlayerBind,
+} from "./redis";
 import { getIGN } from "./minecraft";
 
 const logger = debug("mcdr:discord-bot");
@@ -23,9 +31,9 @@ export const PLAYER_REGISTER_CHANNEL_DESCRIPTION = "Use this channel to bind you
 export const REGIONS_MANAGER_ROLE = "Minecraft Regions Manager";
 
 export class MinecraftRegionsBot {
-    public onUserLeaveChannel: (serverId: string, userId: string) => void = () => {};
-    public onUserJoinChannel: (serverId: string, userId: string) => void = () => {};
-    public onUserBound: (serverId: string, userId: string, playerUuid: string) => void = () => {};
+    public onUserLeaveChannel: (serverId: string, categoryId: string, userId: string) => void = () => {};
+    public onUserJoinChannel: (serverId: string, categoryId: string, userId: string) => void = () => {};
+    public onUserBound: (serverId: string, categoryId: string, userId: string, playerUuid: string) => void = () => {};
     private discord: DiscordBot;
 
     constructor(token: string) {
@@ -50,9 +58,9 @@ export class MinecraftRegionsBot {
                 // On user left voice channel
                 let serverId = await getServer(state.channel.parentID);
                 if (serverId) {
-                    this.onUserLeaveChannel(serverId, state.id);
+                    this.onUserLeaveChannel(serverId, state.channel.parentID, state.id);
                     // Allow the user to resume where he left off
-                    this.overrideChannelAccess(state.channel, state.id, true);
+                    await this.overrideChannelAccess(state.channel, state.id, true);
                 }
             }
             if (
@@ -63,9 +71,9 @@ export class MinecraftRegionsBot {
                 // On user join voice channel
                 let serverId = await getServer(newState.channel.parentID);
                 if (serverId) {
-                    this.onUserJoinChannel(serverId, state.id);
+                    this.onUserJoinChannel(serverId, newState.channel.parentID, state.id);
                     // Revoke their 'resume' permissions
-                    this.overrideChannelAccess(newState.channel, newState.id, false);
+                    await this.overrideChannelAccess(newState.channel, newState.id, false);
                 }
             }
         }
@@ -168,7 +176,7 @@ export class MinecraftRegionsBot {
         } else {
             logger(`registering player with uuid ${uuid} with userId ${userId}`);
             registerPlayer(uuid, userId);
-            this.onUserBound(serverId, userId, uuid);
+            this.onUserBound(serverId, categoryId, userId, uuid);
 
             let ign = await getIGN(uuid);
             message.channel.send(
@@ -264,6 +272,13 @@ export class MinecraftRegionsBot {
         await member.voice.kick();
     }
 
+    public async deafen(categoryId: string, userId: string, deaf: boolean) {
+        const member = this.getVoiceMember(categoryId, userId);
+        if (!member) return;
+
+        await member.voice.setDeaf(deaf);
+    }
+
     public async mute(categoryId: string, userId: string, mute: boolean) {
         const member = this.getVoiceMember(categoryId, userId);
         if (!member) return;
@@ -281,15 +296,17 @@ export class MinecraftRegionsBot {
             logger("move category %s not found", categoryId);
             return false;
         }
-
         let member = category.guild.members.cache.get(userId);
         if (!member) {
             logger("move member is not found:", userId);
             return false;
         }
-
         if (!member.voice.channel) {
             logger("cannot move member because he/she is not connected to a voice channel");
+            return false;
+        }
+        if (member.voice.channel.name === channelName) {
+            logger("user is already in the right channel");
             return false;
         }
 

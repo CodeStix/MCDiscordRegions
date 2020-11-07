@@ -33,7 +33,7 @@ public class RegionListener implements Listener {
         this.globalRegionName = globalRegionName;
     }
 
-    private String getRegionName(ProtectedRegion region) {
+    public String getRegionName(ProtectedRegion region) {
         if (region == null) {
             return globalRegionName;
         }

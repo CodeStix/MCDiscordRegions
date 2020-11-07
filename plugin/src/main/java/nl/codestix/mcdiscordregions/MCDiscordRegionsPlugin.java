@@ -134,6 +134,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         Player pl = getServer().getPlayer(uuid);
         if (pl != null) {
             connection.join(pl.getUniqueId());
+            connection.regionMove(pl.getUniqueId(), regionListener.getRegionName(WorldGuardHandler.getPlayerRegion(pl)));
         }
     }
 

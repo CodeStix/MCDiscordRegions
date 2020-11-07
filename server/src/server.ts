@@ -186,6 +186,10 @@ server.on("connection", (client, req) => {
                         if (!userId) return;
                         await deletePlayer(data.playerUuid);
                         await deleteUser(userId);
+                        if (serverId) {
+                            const categoryId = await getCategory(serverId);
+                            if (categoryId) await bot.kick(categoryId, userId);
+                        }
                     }
                     break;
                 default:

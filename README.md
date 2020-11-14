@@ -1,4 +1,6 @@
-# MCDiscordRegions
+# MCDiscordRegions 1.x
+
+⚠️ **This is the (decentralized) standalone version (1.x) of MCDiscordRegions, every Minecraft server that wants to use this plugin needs to register a Discord bot. This is the right version for you if you want to host the bot yourself and want advanced control. But, if you don't want to take the time to set all of this up, you can use the centralized version of this plugin (`master2` branch), which is easy to setup, but has less advanced features**
 
 This bukkit plugin allows you to connect your minecraft server to Discord. By entering a region in your Minecraft world, this bot will place you in the appropriate Discord channel.
 
@@ -17,13 +19,11 @@ This bukkit plugin allows you to connect your minecraft server to Discord. By en
 1. Join the _entry_ Discord channel.
 2. Send a private message to the Discord bot (created in the Installation phase) with your minecraft in-game name. (should react with a green tick)
 3. Join the Minecraft server.
-4. __(Admin only)__ Create some WorldGuard regions. [Tutorial](https://worldguard.enginehub.org/en/latest/regions/quick-start/)
-5. __(Admin only)__ Set the `discord-channel` region flag to a Discord channel name, the channel will be created automatically when someone enters that region:
+4. **(Admin only)** Create some WorldGuard regions. [Tutorial](https://worldguard.enginehub.org/en/latest/regions/quick-start/)
+5. **(Admin only)** Set the `discord-channel` region flag to a Discord channel name, the channel will be created automatically when someone enters that region:
    `/region flag your_region discord-channel your_channel_name`
 
 ## Command
-
-⚠️ There are a lot of missing configuration features at this moment.
 
 `/dregion [info | whitelist [on|off] | entry <channelName...> | category <categoryName...> | kickOnDiscordLeave [on|off] [kickMessage...] | deletecategory [confirm] | save | limit <maxUsers> <channelName...>]`
 or `/drg ...`
@@ -34,15 +34,15 @@ or `/drg ...`
 -   `category <categoryName...>`: this is to create/set the Discord category the bot will create channels in.
 -   `kickOnDiscordLeave`: when on, kicks the player when he/she leaves the Minecraft regions Discord category. (with the specified message)
 -   `deletecategory`: delete the configured Discord category and all the channels in it.
--   `limit <maxUsers> <channelName...>`: set the user limit on a Discord channel, if more than `maxUsers` players are in the Discord channel, no more players will be allowed in the Minecraft region. 
+-   `limit <maxUsers> <channelName...>`: set the user limit on a Discord channel, if more than `maxUsers` players are in the Discord channel, no more players will be allowed in the Minecraft region.
 -   `save`: save the current settings to the config file. (not needed if auto-save is enabled in the config = default)
 
 ## Discord channel permissions
 
 When the plugin creates a channel, certain permissions will be set automatically:
 
-- The _entry_ channel will be visible to anyone, but no-one will be able to speak or stream. Only joining.
-- All the other created channels are invisible to non-administrators, but they are able to speak in them (not stream) when the bot moves them there.
+-   The _entry_ channel will be visible to anyone, but no-one will be able to speak or stream. Only joining.
+-   All the other created channels are invisible to non-administrators, but they are able to speak in them (not stream) when the bot moves them there.
 
 (currently, these permissions are not configurable)
 

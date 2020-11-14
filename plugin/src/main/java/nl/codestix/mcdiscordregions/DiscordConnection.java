@@ -9,7 +9,7 @@ public interface DiscordConnection {
     void playerDeath(UUID uuid);
     void playerRespawn(UUID uuid);
     void playerRegionMove(UUID uuid, String regionName);
-    void limitRegion(String regionName, int limit);
+    boolean limitRegion(String regionName, int limit);
     void unbind(UUID uuid);
     void close();
     Region getOrCreateRegion(String regionName);

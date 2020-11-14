@@ -180,14 +180,4 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         String realRegionName = regionListener.getRegionName(WorldGuardHandler.getPlayerRegion(player));
         connection.playerJoin(player.getUniqueId(), realRegionName);
     }
-
-    @Override
-    public void regionGotLimited(String regionName, int limit) {
-        command.regionGotLimited(regionName, limit);
-    }
-
-    @Override
-    public void regionLimitFailed(String regionName) {
-        command.regionLimitFailed(regionName);
-    }
 }

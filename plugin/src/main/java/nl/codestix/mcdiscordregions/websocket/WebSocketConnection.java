@@ -31,8 +31,6 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
         Gson gson = new Gson();
         WebSocketMessage base = gson.fromJson(json, WebSocketMessage.class);
         switch (base.action) {
-            case SyncRequest:
-                return gson.fromJson(json, SyncRequestMessage.class);
             case RegionMoveEvent:
                 return gson.fromJson(json, RegionMoveMessage.class);
             case SyncResponse:
@@ -46,8 +44,6 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
                 return gson.fromJson(json, PlayerBasedMessage.class);
             case JoinRequireUserResponse:
                 return gson.fromJson(json, JoinRequireUserResponseMessage.class);
-            case LimitRequest:
-                return gson.fromJson(json, LimitRequestMessage.class);
             default:
                 return null;
         }
@@ -96,13 +92,25 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     }
 
     @Override
-    public void limitRegion(String regionName, int limit) {
+    public boolean limitRegion(String regionName, int limit) {
+        Region region = getRegion(regionName);
+        if (region == null)
+            return false;
+        region.limit = limit;
         send(new LimitRequestMessage(regionName, limit));
+        return true;
     }
 
     @Override
     public void unbind(UUID uuid) {
         send(new UnBindRequestMessage(uuid.toString()));
+    }
+
+    private Region getRegion(String regionName) {
+        for(Region region : regions)
+            if (region.name.equalsIgnoreCase(regionName))
+                return region;
+        return null;
     }
 
     @Override
@@ -138,13 +146,6 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
         if (message instanceof JoinRequireUserResponseMessage) {
             JoinRequireUserResponseMessage requireUserMessage = (JoinRequireUserResponseMessage)message;
             listener.userRequired(UUID.fromString(requireUserMessage.playerUuid), requireUserMessage.key);
-        }
-        else if (message instanceof LimitRequestMessage) {
-            LimitRequestMessage limitMessage = (LimitRequestMessage)message;
-            if (limitMessage.limit < 0)
-                listener.regionLimitFailed(limitMessage.regionName);
-            else
-                listener.regionGotLimited(limitMessage.regionName, limitMessage.limit);
         }
         else if (message instanceof JoinEventMessage) {
             JoinEventMessage joinMessage = (JoinEventMessage)message;

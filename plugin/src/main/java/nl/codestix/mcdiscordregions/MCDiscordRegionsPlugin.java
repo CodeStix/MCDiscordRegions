@@ -94,7 +94,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         String globalRegionName = getConfig().getString(CONFIG_GLOBAL_REGION, "Global");
         regionListener = new RegionListener(discordChannelFlag, connection, globalRegionName);
         Bukkit.getPluginManager().registerEvents(regionListener, this);
-        playerListener = new PlayerListener(connection);
+        playerListener = new PlayerListener(connection, regionListener);
         Bukkit.getPluginManager().registerEvents(playerListener, this);
 
         // Configure commands
@@ -129,13 +129,16 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     }
 
     @Override
-    public void userJoined(UUID uuid) {
-        // User joined Discord channel, send the join message back, this will cause un-deafen
+    public void userJoined(UUID uuid, String regionName) {
         Player pl = getServer().getPlayer(uuid);
-        if (pl != null) {
-            connection.join(pl.getUniqueId());
-            connection.regionMove(pl.getUniqueId(), regionListener.getRegionName(WorldGuardHandler.getPlayerRegion(pl)));
-        }
+        if (pl == null)
+            return;
+
+        getLogger().info("Player " + pl.getName() + " joined discord channel " + regionName);
+
+        // User joined Discord channel, send the join message back, this will cause channel move and un-deafen
+        String realRegionName = regionListener.getRegionName(WorldGuardHandler.getPlayerRegion(pl));
+        connection.join(pl.getUniqueId(), realRegionName);
     }
 
     @Override
@@ -176,6 +179,9 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
             return;
 
         player.sendMessage("§aAwesome, your Minecraft account is now connected to your Discord account. You only have to do this once for all servers that use this feature. Enjoy!");
+
+        String realRegionName = regionListener.getRegionName(WorldGuardHandler.getPlayerRegion(player));
+        connection.join(player.getUniqueId(), realRegionName);
     }
 
     @Override
@@ -186,10 +192,5 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     @Override
     public void regionLimitFailed(String regionName) {
         command.regionLimitFailed(regionName);
-    }
-
-    @Override
-    public void regionLimitReached(UUID uuid, String regionName) {
-         regionListener.fullRegion(regionName);
     }
 }

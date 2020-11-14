@@ -33,8 +33,8 @@ export const REGIONS_MANAGER_ROLE = "Minecraft Regions Manager";
 export const INTERVAL_PER_USER = 750;
 
 export class MinecraftRegionsBot {
-    public onUserLeaveChannel: (serverId: string, categoryId: string, userId: string) => void = () => {};
-    public onUserJoinChannel: (serverId: string, categoryId: string, userId: string) => void = () => {};
+    public onUserLeaveChannel: (serverId: string, channel: VoiceChannel, userId: string) => void = () => {};
+    public onUserJoinChannel: (serverId: string, channel: VoiceChannel, userId: string) => void = () => {};
     public onUserBound: (serverId: string, categoryId: string, userId: string, playerUuid: string) => void = () => {};
     private discord: DiscordBot;
 
@@ -62,7 +62,7 @@ export class MinecraftRegionsBot {
                 // On user left voice channel
                 let serverId = await getServer(state.channel.parentID);
                 if (serverId) {
-                    this.onUserLeaveChannel(serverId, state.channel.parentID, state.id);
+                    this.onUserLeaveChannel(serverId, state.channel, state.id);
                     // Allow the user to resume where he left off
                     await this.overrideChannelAccess(state.channel, state.id, true);
                 }
@@ -75,7 +75,7 @@ export class MinecraftRegionsBot {
                 // On user join voice channel
                 let serverId = await getServer(newState.channel.parentID);
                 if (serverId) {
-                    this.onUserJoinChannel(serverId, newState.channel.parentID, state.id);
+                    this.onUserJoinChannel(serverId, newState.channel, state.id);
                     // Revoke their 'resume' permissions
                     await this.overrideChannelAccess(newState.channel, newState.id, false);
                 }

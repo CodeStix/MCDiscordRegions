@@ -13,7 +13,7 @@ import {
 } from "./redis";
 import {
     BoundMessage,
-    JoinMessage,
+    JoinEventMessage,
     LeftMessage,
     LimitMessage,
     MoveMessage,
@@ -38,7 +38,7 @@ server.once("listening", () => {
 });
 
 const bot = new MinecraftRegionsBot(process.env.DISCORD_TOKEN!);
-bot.onUserLeaveChannel = async (serverId, categoryId, userId) => {
+bot.onUserLeaveChannel = async (serverId, channel, userId) => {
     let connection = connections.get(serverId);
     if (!connection) return;
 
@@ -47,16 +47,16 @@ bot.onUserLeaveChannel = async (serverId, categoryId, userId) => {
 
     connection.send(new LeftMessage(playerId).asJSON());
 };
-bot.onUserJoinChannel = async (serverId, categoryId, userId) => {
+bot.onUserJoinChannel = async (serverId, channel, userId) => {
     let connection = connections.get(serverId);
     if (!connection) return;
 
     let playerId = await getPlayer(userId);
     if (!playerId) return;
 
-    await bot.deafen(categoryId, userId, true);
+    await bot.deafen(channel.parentID!, userId, true);
 
-    connection.send(new JoinMessage(playerId).asJSON());
+    connection.send(new JoinEventMessage(playerId, channel.name).asJSON());
 };
 bot.onUserBound = async (serverId, categoryId, userId, uuid) => {
     logger("user got bound for server %s, %s, %s", serverId, userId, uuid);
@@ -130,7 +130,8 @@ server.on("connection", (client, req) => {
                     client.send(new SyncResponseMessage(regions).asJSON());
                     break;
                 }
-                case "Join":
+                // Fired when a player joined the minecraft server or if a player bound its Discord account
+                case "JoinEvent":
                     {
                         if (!serverId) throw new Error("Not authenticated");
                         const categoryId = await getCategory(serverId);
@@ -145,6 +146,7 @@ server.on("connection", (client, req) => {
                             client.send(new RequireUserMessage(data.playerUuid).asJSON());
                             logger("user needs to be in discord channel");
                         } else {
+                            await bot.move(categoryId, userId, data.regionName);
                             await bot.deafen(categoryId, userId, false);
                         }
                     }
@@ -165,11 +167,7 @@ server.on("connection", (client, req) => {
                         if (!categoryId) throw new Error(`No category found for server (${serverId})`);
                         const userId = await getUser(data.playerUuid);
                         if (!userId) throw new Error("No user found");
-                        let result = await bot.move(categoryId, userId, data.regionName ?? "Global");
-                        if (!result) {
-                            // Respond with Move message to tell that the move was unsuccessful
-                            client.send(new MoveMessage(data.playerUuid, data.regionName).asJSON());
-                        }
+                        await bot.move(categoryId, userId, data.regionName ?? "Global");
                     }
                     break;
                 case "Death":

@@ -1,9 +1,14 @@
 package nl.codestix.mcdiscordregions.command;
 
 import nl.codestix.mcdiscordregions.MCDiscordRegionsPlugin;
+import nl.codestix.mcdiscordregions.Region;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
+import java.util.Collection;
+import java.util.UUID;
 
 public class DiscordRegionsCommand implements CommandExecutor
 {
@@ -66,6 +71,17 @@ public class DiscordRegionsCommand implements CommandExecutor
             int limit = Integer.parseInt(strings[1]);
             String regionName = join(" ", 2, strings);
             plugin.connection.limitRegion(regionName, limit);
+            return true;
+        }
+        else if (strings.length == 1 && strings[0].equalsIgnoreCase("debug")) {
+            Collection<Region> regions = plugin.connection.getRegions();
+            for(Region region : regions) {
+                commandSender.sendMessage(String.format("§dRegion %s (limit=%d)", region.name, region.limit));
+                for(String uuid : region.playerUuids) {
+                    Player pl = plugin.getServer().getPlayer(UUID.fromString(uuid));
+                    commandSender.sendMessage(String.format(" - Player %s (uuid=%s)", pl == null ? "<null>" : pl.getName(), uuid));
+                }
+            }
             return true;
         }
 

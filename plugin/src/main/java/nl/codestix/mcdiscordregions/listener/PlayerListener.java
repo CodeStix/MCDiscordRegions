@@ -1,6 +1,7 @@
 package nl.codestix.mcdiscordregions.listener;
 
 import nl.codestix.mcdiscordregions.DiscordConnection;
+import nl.codestix.mcdiscordregions.WorldGuardHandler;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -10,9 +11,11 @@ import org.bukkit.event.player.*;
 public class PlayerListener implements Listener {
 
     private DiscordConnection connection;
+    private RegionListener regionListener;
 
-    public PlayerListener(DiscordConnection connection) {
+    public PlayerListener(DiscordConnection connection, RegionListener regionListener) {
         this.connection = connection;
+        this.regionListener = regionListener;
     }
 
 //    @EventHandler
@@ -38,6 +41,7 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        connection.join(event.getPlayer().getUniqueId());
+        String regionName = regionListener.getRegionName(WorldGuardHandler.getPlayerRegion(event.getPlayer()));
+        connection.join(event.getPlayer().getUniqueId(), regionName);
     }
 }

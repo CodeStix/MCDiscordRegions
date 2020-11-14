@@ -11,6 +11,7 @@ import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,7 +39,7 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
                 return gson.fromJson(json, MoveMessage.class);
             case SyncResponse:
                 return gson.fromJson(json, SyncResponseMessage.class);
-            case Join:
+            case JoinEvent:
             case Left:
             case Respawn:
             case Death:
@@ -58,12 +59,14 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     }
 
     @Override
-    public void join(UUID uuid) {
-        send(new PlayerBasedMessage(WebSocketMessageType.Join, uuid.toString()));
+    public void join(UUID uuid, String regionName) {
+        getOrCreateRegion(regionName).playerUuids.add(uuid.toString());
+        send(new JoinEventMessage(uuid.toString(), regionName));
     }
 
     @Override
     public void left(UUID uuid) {
+        getPlayerRegion(uuid.toString()).playerUuids.remove(uuid.toString());
         send(new PlayerBasedMessage(WebSocketMessageType.Left, uuid.toString()));
     }
 
@@ -79,7 +82,10 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
 
     @Override
     public void regionMove(UUID uuid, String regionName) {
-        send(new MoveMessage(uuid.toString(), regionName));
+        String id = uuid.toString();
+        getPlayerRegion(id).playerUuids.remove(id);
+        getOrCreateRegion(regionName).playerUuids.add(id);
+        send(new MoveMessage(id, regionName));
     }
 
     @Override
@@ -90,6 +96,28 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     @Override
     public void unbind(UUID uuid) {
         send(new UnBindMessage(uuid.toString()));
+    }
+
+    @Override
+    public Region getOrCreateRegion(String regionName) {
+        for(Region region : regions)
+            if (region.name.equalsIgnoreCase(regionName))
+                return region;
+        Region newRegion = new Region(regionName);
+        regions.add(newRegion);
+        return newRegion;
+    }
+
+    @Override
+    public Collection<Region> getRegions() {
+        return regions;
+    }
+
+    public Region getPlayerRegion(String playerUuid) {
+        for(Region region : regions)
+            if (region.playerUuids.contains(playerUuid))
+                return region;
+        return null;
     }
 
     @Override
@@ -111,17 +139,14 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
             else
                 listener.regionGotLimited(limitMessage.regionName, limitMessage.limit);
         }
-        else if (message instanceof MoveMessage) {
-            MoveMessage moveMessage = (MoveMessage)message;
-            listener.regionLimitReached(UUID.fromString(moveMessage.playerUuid), moveMessage.regionName);
+        else if (message instanceof JoinEventMessage) {
+            JoinEventMessage joinMessage = (JoinEventMessage)message;
+            listener.userJoined(UUID.fromString(joinMessage.playerUuid), joinMessage.regionName);
         }
         else if (message instanceof PlayerBasedMessage) {
             PlayerBasedMessage playerMessage = (PlayerBasedMessage)message;
             UUID id = UUID.fromString(playerMessage.playerUuid);
             switch (playerMessage.action) {
-                case Join:
-                    listener.userJoined(id);
-                    break;
                 case Left:
                     listener.userLeft(id);
                     break;

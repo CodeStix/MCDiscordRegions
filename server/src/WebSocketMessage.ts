@@ -1,6 +1,6 @@
 export type RegionMessageType =
     | "Move"
-    | "Join"
+    | "JoinEvent"
     | "Left"
     | "Death"
     | "Respawn"
@@ -48,9 +48,12 @@ export class MoveMessage extends PlayerMessage<"Move"> {
  * A message sent from the server to the bot to tell that a player has joined the server.
  * A message sent from the bot to the server to tell the server that a user has connected to the Discord category.
  */
-export class JoinMessage extends PlayerMessage<"Join"> {
-    constructor(playerUuid: string) {
-        super("Join", playerUuid);
+export class JoinEventMessage extends PlayerMessage<"JoinEvent"> {
+    regionName: string;
+
+    constructor(playerUuid: string, regionName: string) {
+        super("JoinEvent", playerUuid);
+        this.regionName = regionName;
     }
 }
 
@@ -155,7 +158,7 @@ export class SyncResponseMessage extends Message<"SyncResponse"> {
 
 export type WebSocketMessage =
     | MoveMessage
-    | JoinMessage
+    | JoinEventMessage
     | DeathMessage
     | LeftMessage
     | RespawnMessage

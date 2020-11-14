@@ -1,13 +1,13 @@
 export type RegionMessageType =
-    | "Move"
+    | "RegionMoveEvent"
     | "JoinEvent"
-    | "Left"
-    | "Death"
-    | "Respawn"
-    | "RequireUser"
-    | "Bound"
-    | "Limit"
-    | "UnBind"
+    | "JoinRequireUserResponse"
+    | "LeaveEvent"
+    | "DeathEvent"
+    | "RespawnEvent"
+    | "BoundEvent"
+    | "LimitRequest"
+    | "UnBindRequest"
     | "SyncResponse"
     | "SyncRequest";
 
@@ -35,11 +35,11 @@ class PlayerMessage<T extends RegionMessageType> extends Message<T> {
 /**
  * A message sent from the server to the bot to tell that a player has moved from one region to another.
  */
-export class MoveMessage extends PlayerMessage<"Move"> {
+export class RegionMoveEventMessage extends PlayerMessage<"RegionMoveEvent"> {
     regionName: string;
 
     constructor(playerUuid: string, regionName: string) {
-        super("Move", playerUuid);
+        super("RegionMoveEvent", playerUuid);
         this.regionName = regionName;
     }
 }
@@ -61,27 +61,27 @@ export class JoinEventMessage extends PlayerMessage<"JoinEvent"> {
  * A message sent from the server to the bot to tell that a player has left the server.
  * A message sent from the bot to the server to tell the server that a user has left the Discord category.
  */
-export class LeftMessage extends PlayerMessage<"Left"> {
+export class LeaveEventMessage extends PlayerMessage<"LeaveEvent"> {
     constructor(playerUuid: string) {
-        super("Left", playerUuid);
+        super("LeaveEvent", playerUuid);
     }
 }
 
 /**
  * A message sent from the server to the bot to tell that a player has died.
  */
-export class DeathMessage extends PlayerMessage<"Death"> {
+export class DeathEventMessage extends PlayerMessage<"DeathEvent"> {
     constructor(playerUuid: string) {
-        super("Death", playerUuid);
+        super("DeathEvent", playerUuid);
     }
 }
 
 /**
  * A message sent from the server to the bot to tell that a player has respawned.
  */
-export class RespawnMessage extends PlayerMessage<"Respawn"> {
+export class RespawnEventMessage extends PlayerMessage<"RespawnEvent"> {
     constructor(playerUuid: string) {
-        super("Respawn", playerUuid);
+        super("RespawnEvent", playerUuid);
     }
 }
 
@@ -89,11 +89,11 @@ export class RespawnMessage extends PlayerMessage<"Respawn"> {
  * A message sent from the bot to the server to tell that a Discord category requires a Discord bound Minecraft account.
  * Can be a result of the Join message.
  */
-export class RequireUserMessage extends PlayerMessage<"RequireUser"> {
+export class JoinRequireUserResponseMessage extends PlayerMessage<"JoinRequireUserResponse"> {
     key?: string;
 
     constructor(playerUuid: string, key?: string) {
-        super("RequireUser", playerUuid);
+        super("JoinRequireUserResponse", playerUuid);
         this.key = key;
     }
 }
@@ -114,9 +114,9 @@ export class SyncRequestMessage extends Message<"SyncRequest"> {
  * A message sent from the bot to the server to tell the server that a player uuid was bound
  * to a Discord user id.
  */
-export class BoundMessage extends PlayerMessage<"Bound"> {
+export class BoundEventMessage extends PlayerMessage<"BoundEvent"> {
     constructor(playerUuid: string) {
-        super("Bound", playerUuid);
+        super("BoundEvent", playerUuid);
     }
 }
 
@@ -124,20 +124,20 @@ export class BoundMessage extends PlayerMessage<"Bound"> {
  * A message sent from the server to the bot to tell the bot that a region should have a limited amount of people in it
  * A message sent from the bot to the server to tell that the limit for a region has modified using the Discord UI.
  */
-export class LimitMessage extends Message<"Limit"> {
+export class LimitRequestMessage extends Message<"LimitRequest"> {
     regionName: string;
     limit: number;
 
     constructor(regionName: string, limit: number) {
-        super("Limit");
+        super("LimitRequest");
         this.regionName = regionName;
         this.limit = limit;
     }
 }
 
-export class UnBindMessage extends PlayerMessage<"UnBind"> {
+export class UnBindRequestMessage extends PlayerMessage<"UnBindRequest"> {
     constructor(playerUuid: string) {
-        super("UnBind", playerUuid);
+        super("UnBindRequest", playerUuid);
     }
 }
 
@@ -157,14 +157,14 @@ export class SyncResponseMessage extends Message<"SyncResponse"> {
 }
 
 export type WebSocketMessage =
-    | MoveMessage
+    | RegionMoveEventMessage
     | JoinEventMessage
-    | DeathMessage
-    | LeftMessage
-    | RespawnMessage
+    | DeathEventMessage
+    | LeaveEventMessage
+    | RespawnEventMessage
     | SyncRequestMessage
-    | BoundMessage
-    | LimitMessage
-    | UnBindMessage
-    | RequireUserMessage
+    | BoundEventMessage
+    | LimitRequestMessage
+    | UnBindRequestMessage
+    | JoinRequireUserResponseMessage
     | SyncResponseMessage;

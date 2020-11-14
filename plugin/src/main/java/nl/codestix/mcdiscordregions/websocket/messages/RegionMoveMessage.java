@@ -2,12 +2,12 @@ package nl.codestix.mcdiscordregions.websocket.messages;
 
 import nl.codestix.mcdiscordregions.websocket.WebSocketMessageType;
 
-public class MoveMessage extends PlayerBasedMessage {
+public class RegionMoveMessage extends PlayerBasedMessage {
 
     public String regionName;
 
-    public MoveMessage(String playerUuid, String regionName) {
-        super(WebSocketMessageType.Move, playerUuid);
+    public RegionMoveMessage(String playerUuid, String regionName) {
+        super(WebSocketMessageType.RegionMoveEvent, playerUuid);
         this.regionName = regionName;
     }
 }

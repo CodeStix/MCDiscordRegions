@@ -33,21 +33,21 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
         switch (base.action) {
             case SyncRequest:
                 return gson.fromJson(json, SyncRequestMessage.class);
-            case Move:
-                return gson.fromJson(json, MoveMessage.class);
+            case RegionMoveEvent:
+                return gson.fromJson(json, RegionMoveMessage.class);
             case SyncResponse:
                 return gson.fromJson(json, SyncResponseMessage.class);
             case JoinEvent:
                 return gson.fromJson(json, JoinEventMessage.class);
-            case Left:
-            case Respawn:
-            case Death:
-            case Bound:
+            case LeaveEvent:
+            case RespawnEvent:
+            case DeathEvent:
+            case BoundEvent:
                 return gson.fromJson(json, PlayerBasedMessage.class);
-            case RequireUser:
-                return gson.fromJson(json, RequireUserMessage.class);
-            case Limit:
-                return gson.fromJson(json, LimitMessage.class);
+            case JoinRequireUserResponse:
+                return gson.fromJson(json, JoinRequireUserResponseMessage.class);
+            case LimitRequest:
+                return gson.fromJson(json, LimitRequestMessage.class);
             default:
                 return null;
         }
@@ -68,21 +68,21 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     public void playerLeave(UUID uuid) {
         trackedPlayers.remove(uuid);
         getPlayerRegion(uuid.toString()).playerUuids.remove(uuid.toString());
-        send(new PlayerBasedMessage(WebSocketMessageType.Left, uuid.toString()));
+        send(new PlayerBasedMessage(WebSocketMessageType.LeaveEvent, uuid.toString()));
     }
 
     @Override
     public void playerDeath(UUID uuid) {
         if (!trackedPlayers.contains(uuid))
             return;
-        send(new PlayerBasedMessage(WebSocketMessageType.Death, uuid.toString()));
+        send(new PlayerBasedMessage(WebSocketMessageType.DeathEvent, uuid.toString()));
     }
 
     @Override
     public void playerRespawn(UUID uuid) {
         if (!trackedPlayers.contains(uuid))
             return;
-        send(new PlayerBasedMessage(WebSocketMessageType.Respawn, uuid.toString()));
+        send(new PlayerBasedMessage(WebSocketMessageType.RespawnEvent, uuid.toString()));
     }
 
     @Override
@@ -92,17 +92,17 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
         String id = uuid.toString();
         getPlayerRegion(id).playerUuids.remove(id);
         getOrCreateRegion(regionName).playerUuids.add(id);
-        send(new MoveMessage(id, regionName));
+        send(new RegionMoveMessage(id, regionName));
     }
 
     @Override
     public void limitRegion(String regionName, int limit) {
-        send(new LimitMessage(regionName, limit));
+        send(new LimitRequestMessage(regionName, limit));
     }
 
     @Override
     public void unbind(UUID uuid) {
-        send(new UnBindMessage(uuid.toString()));
+        send(new UnBindRequestMessage(uuid.toString()));
     }
 
     @Override
@@ -135,12 +135,12 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     @Override
     public void onMessage(String s) {
         WebSocketMessage message = fromJSON(s);
-        if (message instanceof RequireUserMessage) {
-            RequireUserMessage requireUserMessage = (RequireUserMessage)message;
+        if (message instanceof JoinRequireUserResponseMessage) {
+            JoinRequireUserResponseMessage requireUserMessage = (JoinRequireUserResponseMessage)message;
             listener.userRequired(UUID.fromString(requireUserMessage.playerUuid), requireUserMessage.key);
         }
-        else if (message instanceof LimitMessage) {
-            LimitMessage limitMessage = (LimitMessage)message;
+        else if (message instanceof LimitRequestMessage) {
+            LimitRequestMessage limitMessage = (LimitRequestMessage)message;
             if (limitMessage.limit < 0)
                 listener.regionLimitFailed(limitMessage.regionName);
             else
@@ -163,10 +163,10 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
             PlayerBasedMessage playerMessage = (PlayerBasedMessage)message;
             UUID id = UUID.fromString(playerMessage.playerUuid);
             switch (playerMessage.action) {
-                case Left:
+                case LeaveEvent:
                     listener.userLeft(id);
                     break;
-                case Bound:
+                case BoundEvent:
                     listener.userBound(id);
                     break;
             }

@@ -12,13 +12,13 @@ import {
     rateLimit,
 } from "./redis";
 import {
-    BoundMessage,
+    BoundEventMessage,
     JoinEventMessage,
-    LeftMessage,
-    LimitMessage,
-    MoveMessage,
+    LeaveEventMessage,
+    LimitRequestMessage,
+    RegionMoveEventMessage,
     Region,
-    RequireUserMessage,
+    JoinRequireUserResponseMessage,
     SyncResponseMessage,
     WebSocketMessage,
 } from "./WebSocketMessage";
@@ -45,7 +45,7 @@ bot.onUserLeaveChannel = async (serverId, channel, userId) => {
     let playerId = await getPlayer(userId);
     if (!playerId) return;
 
-    connection.send(new LeftMessage(playerId).asJSON());
+    connection.send(new LeaveEventMessage(playerId).asJSON());
 };
 bot.onUserJoinChannel = async (serverId, channel, userId) => {
     let connection = connections.get(serverId);
@@ -65,7 +65,7 @@ bot.onUserBound = async (serverId, categoryId, userId, uuid) => {
 
     await bot.deafen(categoryId, userId, true);
 
-    connection.send(new BoundMessage(uuid).asJSON());
+    connection.send(new BoundEventMessage(uuid).asJSON());
 };
 
 server.on("connection", (client, req) => {
@@ -140,10 +140,12 @@ server.on("connection", (client, req) => {
                         if (!userId) {
                             // Generate a temporary key that will be used to bind the Minecraft player to the Discord user
                             let key = await createPlayerBind(data.playerUuid);
-                            client.send(new RequireUserMessage(data.playerUuid, PLAYER_PREFIX + key).asJSON());
+                            client.send(
+                                new JoinRequireUserResponseMessage(data.playerUuid, PLAYER_PREFIX + key).asJSON()
+                            );
                             logger("key for player %s: %s", data.playerUuid, key);
                         } else if (!bot.inCategoryChannel(categoryId, userId)) {
-                            client.send(new RequireUserMessage(data.playerUuid).asJSON());
+                            client.send(new JoinRequireUserResponseMessage(data.playerUuid).asJSON());
                             logger("user needs to be in discord channel");
                         } else {
                             await bot.move(categoryId, userId, data.regionName);
@@ -151,7 +153,7 @@ server.on("connection", (client, req) => {
                         }
                     }
                     break;
-                case "Left":
+                case "LeaveEvent":
                     {
                         if (!serverId) throw new Error("Not authenticated");
                         const categoryId = await getCategory(serverId);
@@ -160,7 +162,7 @@ server.on("connection", (client, req) => {
                         if (userId) await bot.kick(categoryId, userId);
                     }
                     break;
-                case "Move":
+                case "RegionMoveEvent":
                     {
                         if (!serverId) throw new Error("Not authenticated");
                         const categoryId = await getCategory(serverId);
@@ -170,7 +172,7 @@ server.on("connection", (client, req) => {
                         await bot.move(categoryId, userId, data.regionName ?? "Global");
                     }
                     break;
-                case "Death":
+                case "DeathEvent":
                     {
                         if (!serverId) throw new Error("Not authenticated");
                         const categoryId = await getCategory(serverId);
@@ -179,7 +181,7 @@ server.on("connection", (client, req) => {
                         if (userId) await bot.mute(categoryId, userId, true);
                     }
                     break;
-                case "Respawn":
+                case "RespawnEvent":
                     {
                         if (!serverId) throw new Error("Not authenticated");
                         const categoryId = await getCategory(serverId);
@@ -188,16 +190,16 @@ server.on("connection", (client, req) => {
                         if (userId) await bot.mute(categoryId, userId, false);
                     }
                     break;
-                case "Limit":
+                case "LimitRequest":
                     {
                         if (!serverId) throw new Error("Not authenticated");
                         const categoryId = await getCategory(serverId);
                         if (!categoryId) throw new Error(`No category found for server (${serverId})`);
                         let result = await bot.limit(categoryId, data.regionName, data.limit);
-                        client.send(new LimitMessage(data.regionName, result ? data.limit : -1).asJSON());
+                        client.send(new LimitRequestMessage(data.regionName, result ? data.limit : -1).asJSON());
                     }
                     break;
-                case "UnBind":
+                case "UnBindRequest":
                     {
                         const userId = await getUser(data.playerUuid);
                         if (!userId) return;

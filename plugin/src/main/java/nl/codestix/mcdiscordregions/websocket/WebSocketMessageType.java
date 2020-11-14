@@ -1,15 +1,15 @@
 package nl.codestix.mcdiscordregions.websocket;
 
 public enum WebSocketMessageType {
-    Move,
+    RegionMoveEvent,
     JoinEvent,
-    Left,
-    Death,
-    Respawn,
-    RequireUser,
-    Bound,
-    Limit,
-    UnBind,
+    JoinRequireUserResponse,
+    LeaveEvent,
+    DeathEvent,
+    RespawnEvent,
+    BoundEvent,
+    LimitRequest,
+    UnBindRequest,
     SyncRequest,
     SyncResponse
 }

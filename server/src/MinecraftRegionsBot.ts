@@ -135,17 +135,23 @@ export class MinecraftRegionsBot {
         }
     }
 
+    private createErrorMessage(message: string) {
+        return new MessageEmbed().setColor(16711680).setTitle("❌ Whoops!").setDescription(message);
+    }
+
+    private createSuccessMessage(message: string) {
+        return new MessageEmbed().setColor(65280).setTitle("✅ Success!").setDescription(message);
+    }
+
     private async handleMessage(message: Message) {
         if (!message.content.startsWith(PLAYER_PREFIX)) return;
         let userId = message.author.id;
 
         if (message.channel.type !== "text" || !message.channel.parentID) {
             message.channel.send(
-                new MessageEmbed()
-                    .setColor(16711680)
-                    .setTitle(
-                        `❌ This channel is not connected to a Minecraft server, please use the #${PLAYER_REGISTER_CHANNEL} channel.`
-                    )
+                this.createErrorMessage(
+                    `This channel is not connected to a Minecraft server, please use the #${PLAYER_REGISTER_CHANNEL} channel.`
+                )
             );
             return;
         }
@@ -154,11 +160,9 @@ export class MinecraftRegionsBot {
         const serverId = await getServer(categoryId);
         if (!serverId) {
             message.channel.send(
-                new MessageEmbed()
-                    .setColor(16711680)
-                    .setTitle(
-                        `❌ This channel is not connected to a Minecraft server, please use the #${PLAYER_REGISTER_CHANNEL} channel.`
-                    )
+                this.createErrorMessage(
+                    `This channel is not connected to a Minecraft server, please use the #${PLAYER_REGISTER_CHANNEL} channel.`
+                )
             );
             return;
         }
@@ -168,11 +172,9 @@ export class MinecraftRegionsBot {
         if (!uuid) {
             logger(`user ${userId} tried to revoke invalid key '${key}'`);
             message.channel.send(
-                new MessageEmbed()
-                    .setColor(16711680)
-                    .setTitle(
-                        `❌ That is not a valid Minecraft code. You can receive a code when you join the Minecraft server. These codes are CaSe SeNsiTiVe.`
-                    )
+                this.createErrorMessage(
+                    `❌ That is not a valid Minecraft code. You can receive a code when you join the Minecraft server. These codes are CaSe SeNsiTiVe.`
+                )
             );
         } else {
             logger(`registering player with uuid ${uuid} with userId ${userId}`);
@@ -181,11 +183,9 @@ export class MinecraftRegionsBot {
 
             let ign = await getIGN(uuid);
             message.channel.send(
-                new MessageEmbed()
-                    .setColor(65280)
-                    .setTitle(
-                        `✅ ${message.author.username}, your Discord account is now connected to your Minecraft account ${ign}!`
-                    )
+                this.createSuccessMessage(
+                    `${message.author.username}, your Discord account is now connected to your Minecraft account ${ign}!`
+                )
             );
 
             // Create or get the global (default channel)

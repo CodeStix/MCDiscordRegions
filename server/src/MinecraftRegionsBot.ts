@@ -54,6 +54,8 @@ export class MinecraftRegionsBot {
     }
 
     private async handleVoiceStateUpdate(state: VoiceState, newState: VoiceState) {
+        if (newState.member?.user.bot || state.member?.user.bot) return;
+
         if (!state.channel || !newState.channel || state.channelID !== newState.channelID) {
             if (state.channel && state.channel.parentID && state.channel.parentID !== newState.channel?.parentID) {
                 // On user left voice channel

@@ -29,6 +29,7 @@ export const PLAYER_PREFIX = "#";
 export const PLAYER_REGISTER_CHANNEL = "minecraft-bind";
 export const PLAYER_REGISTER_CHANNEL_DESCRIPTION = "Use this channel to bind your Discord tag to your Minecraft name.";
 export const REGIONS_MANAGER_ROLE = "Minecraft Regions Manager";
+export const INTERVAL_PER_USER = 750;
 
 export class MinecraftRegionsBot {
     public onUserLeaveChannel: (serverId: string, categoryId: string, userId: string) => void = () => {};
@@ -290,6 +291,9 @@ export class MinecraftRegionsBot {
         return !!this.getVoiceMember(categoryId, userId);
     }
 
+    private lastMoves: Map<string, number> = new Map();
+    private laterMoves: Map<string, NodeJS.Timeout> = new Map();
+
     public async move(categoryId: string, userId: string, channelName: string) {
         let category = this.getCategory(categoryId);
         if (!category) {
@@ -305,14 +309,35 @@ export class MinecraftRegionsBot {
             logger("cannot move member because he/she is not connected to a voice channel");
             return false;
         }
-        if (member.voice.channel.name === channelName) {
-            logger("user is already in the right channel");
-            return false;
-        }
 
         let moveChannel = await this.getOrCreateRegionChannel(category, channelName);
-        await member.voice.setChannel(moveChannel, "Moved to this location in Minecraft");
-        return moveChannel.userLimit === 0 || moveChannel.members.size < moveChannel.userLimit;
+        let full = moveChannel.userLimit === 0 || moveChannel.members.size + 1 < moveChannel.userLimit;
+
+        const doMove = async () => {
+            if (member!.voice.channel!.name === channelName) {
+                logger("user is already in the right channel");
+                return;
+            }
+            await member!.voice.setChannel(moveChannel, "Moved to this location in Minecraft");
+        };
+
+        const now = new Date().getTime();
+        let lastMove = this.lastMoves.get(userId);
+        if (lastMove && now - lastMove < INTERVAL_PER_USER) {
+            // Move the user later, because he got rate limited
+            if (this.laterMoves.has(userId)) {
+                logger("move later: removing previous move");
+                clearTimeout(this.laterMoves.get(userId)!);
+            }
+            logger("move later");
+            let timeout = setTimeout(doMove, INTERVAL_PER_USER);
+            this.laterMoves.set(userId, timeout);
+        } else {
+            // Move the user instantly
+            await doMove();
+            this.lastMoves.set(userId, new Date().getTime());
+        }
+        return full;
     }
 
     public async limit(categoryId: string, regionName: string, userLimit: number) {

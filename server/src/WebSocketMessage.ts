@@ -4,11 +4,12 @@ export type RegionMessageType =
     | "Left"
     | "Death"
     | "Respawn"
-    | "Auth"
     | "RequireUser"
     | "Bound"
     | "Limit"
-    | "UnBind";
+    | "UnBind"
+    | "SyncResponse"
+    | "SyncRequest";
 
 class Message<T extends RegionMessageType> {
     action: T;
@@ -97,11 +98,11 @@ export class RequireUserMessage extends PlayerMessage<"RequireUser"> {
 /**
  * A message sent from the server to the bot to tell the bot which server it is.
  */
-export class AuthMessage extends Message<"Auth"> {
+export class SyncRequestMessage extends Message<"SyncRequest"> {
     serverId: string;
 
     constructor(serverId: string) {
-        super("Auth");
+        super("SyncRequest");
         this.serverId = serverId;
     }
 }
@@ -137,14 +138,30 @@ export class UnBindMessage extends PlayerMessage<"UnBind"> {
     }
 }
 
+export interface Region {
+    name: string;
+    playerUuids: string[];
+    limit: number;
+}
+
+export class SyncResponseMessage extends Message<"SyncResponse"> {
+    regions: Region[];
+
+    constructor(regions: Region[]) {
+        super("SyncResponse");
+        this.regions = regions;
+    }
+}
+
 export type WebSocketMessage =
     | MoveMessage
     | JoinMessage
     | DeathMessage
     | LeftMessage
     | RespawnMessage
-    | AuthMessage
+    | SyncRequestMessage
     | BoundMessage
     | LimitMessage
     | UnBindMessage
-    | RequireUserMessage;
+    | RequireUserMessage
+    | SyncResponseMessage;

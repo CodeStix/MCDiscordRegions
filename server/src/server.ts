@@ -17,7 +17,9 @@ import {
     LeftMessage,
     LimitMessage,
     MoveMessage,
+    Region,
     RequireUserMessage,
+    SyncResponseMessage,
     WebSocketMessage,
 } from "./WebSocketMessage";
 import { MinecraftRegionsBot, PLAYER_PREFIX } from "./MinecraftRegionsBot";
@@ -100,7 +102,7 @@ server.on("connection", (client, req) => {
 
         try {
             switch (data.action) {
-                case "Auth":
+                case "SyncRequest":
                     {
                         if (serverId) {
                             logger("server %s is authenticating for the second time.", serverId);
@@ -109,8 +111,25 @@ server.on("connection", (client, req) => {
                         serverId = data.serverId;
                         connections.set(serverId, client);
                         clientLogger("authenticated as %s", serverId);
+
+                        const categoryId = await getCategory(serverId);
+                        let regions: Region[] = [];
+                        if (!categoryId) {
+                            regions = [];
+                        } else {
+                            regions = await bot.getRegions(categoryId);
+                        }
+                        client.send(new SyncResponseMessage(regions).asJSON());
                     }
                     break;
+                case "SyncRequest": {
+                    if (!serverId) throw new Error("Not authenticated");
+                    const categoryId = await getCategory(serverId);
+                    if (!categoryId) throw new Error(`No category found for server (${serverId})`);
+                    let regions = await bot.getRegions(categoryId);
+                    client.send(new SyncResponseMessage(regions).asJSON());
+                    break;
+                }
                 case "Join":
                     {
                         if (!serverId) throw new Error("Not authenticated");

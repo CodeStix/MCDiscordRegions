@@ -21,6 +21,7 @@ import {
     revokePlayerBind,
 } from "./redis";
 import { getIGN } from "./minecraft";
+import { Region } from "./WebSocketMessage";
 
 const logger = debug("mcdr:discord-bot");
 
@@ -205,6 +206,27 @@ export class MinecraftRegionsBot {
         } else {
             return channel as CategoryChannel;
         }
+    }
+
+    public async getRegions(categoryId: string): Promise<Region[]> {
+        let category = this.getCategory(categoryId);
+        if (!category) throw new Error("getRegions: No category found: " + categoryId);
+
+        let regions: Region[] = await Promise.all(
+            category.children
+                .filter((channel) => channel.type === "voice")
+                .map(async (channel) => {
+                    const voice = channel as VoiceChannel;
+                    const players = await Promise.all(voice.members.map(async (user) => await getPlayer(user.id)));
+                    return {
+                        limit: voice.userLimit,
+                        name: voice.name,
+                        playerUuids: players.filter((pl) => pl !== null) as string[],
+                    };
+                })
+        );
+
+        return regions;
     }
 
     private getVoiceMember(categoryId: string, userId: string): GuildMember | null {

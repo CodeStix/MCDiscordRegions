@@ -3,38 +3,41 @@ package nl.codestix.mcdiscordregions.websocket;
 import com.google.gson.Gson;
 import nl.codestix.mcdiscordregions.DiscordConnection;
 import nl.codestix.mcdiscordregions.DiscordEvents;
+import nl.codestix.mcdiscordregions.Region;
 import nl.codestix.mcdiscordregions.websocket.messages.*;
 import org.bukkit.Bukkit;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class WebSocketConnection extends WebSocketClient implements DiscordConnection {
 
     private DiscordEvents listener;
-
-    public WebSocketConnection(URI serverUri, DiscordEvents listener) throws InterruptedException {
-        super(serverUri);
-        setTcpNoDelay(true);
-        connectBlocking();
-        this.listener = listener;
-    }
+    private List<Region> regions = new ArrayList<>();
+    private String serverId;
 
     public WebSocketConnection(URI serverUri, DiscordEvents listener, String serverId) throws InterruptedException {
-        this(serverUri, listener);
-        auth(serverId);
+        super(serverUri);
+        this.listener = listener;
+        this.serverId = serverId;
+        setTcpNoDelay(true);
+        connectBlocking();
     }
 
     public static WebSocketMessage fromJSON(String json) {
         Gson gson = new Gson();
         WebSocketMessage base = gson.fromJson(json, WebSocketMessage.class);
         switch (base.action) {
-            case Auth:
-                return gson.fromJson(json, AuthMessage.class);
+            case SyncRequest:
+                return gson.fromJson(json, SyncRequestMessage.class);
             case Move:
                 return gson.fromJson(json, MoveMessage.class);
+            case SyncResponse:
+                return gson.fromJson(json, SyncResponseMessage.class);
             case Join:
             case Left:
             case Respawn:
@@ -52,11 +55,6 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
 
     private void send(WebSocketMessage message) {
         send(message.toJSON());
-    }
-
-    @Override
-    public void auth(String serverId) {
-        send(new AuthMessage(serverId));
     }
 
     @Override
@@ -96,7 +94,7 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
 
     @Override
     public void onOpen(ServerHandshake handshake) {
-        // Setup
+        send(new SyncRequestMessage(serverId));
     }
 
     @Override
@@ -131,6 +129,11 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
                     listener.userBound(id);
                     break;
             }
+        }
+        else if (message instanceof SyncResponseMessage) {
+            Bukkit.getLogger().info("Received sync response: " + s);
+            SyncResponseMessage syncMessage = (SyncResponseMessage)message;
+            this.regions = syncMessage.regions;
         }
     }
 

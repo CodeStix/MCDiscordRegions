@@ -6,9 +6,10 @@ public enum WebSocketMessageType {
     Left,
     Death,
     Respawn,
-    Auth,
     RequireUser,
     Bound,
     Limit,
-    UnBind
+    UnBind,
+    SyncRequest,
+    SyncResponse
 }

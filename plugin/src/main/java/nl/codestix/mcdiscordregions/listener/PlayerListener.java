@@ -2,7 +2,6 @@ package nl.codestix.mcdiscordregions.listener;
 
 import nl.codestix.mcdiscordregions.DiscordConnection;
 import nl.codestix.mcdiscordregions.WorldGuardHandler;
-import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -26,22 +25,22 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onDeath(PlayerDeathEvent event) {
-        connection.death(event.getEntity().getUniqueId());
+        connection.playerDeath(event.getEntity().getUniqueId());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        connection.left(event.getPlayer().getUniqueId());
+        connection.playerLeave(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
-        connection.respawn(event.getPlayer().getUniqueId());
+        connection.playerRespawn(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         String regionName = regionListener.getRegionName(WorldGuardHandler.getPlayerRegion(event.getPlayer()));
-        connection.join(event.getPlayer().getUniqueId(), regionName);
+        connection.playerJoin(event.getPlayer().getUniqueId(), regionName);
     }
 }

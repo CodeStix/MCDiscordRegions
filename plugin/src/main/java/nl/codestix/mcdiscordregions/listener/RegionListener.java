@@ -33,15 +33,6 @@ public class RegionListener implements Listener {
     }
 
     @EventHandler
-    public void onRegionInit(RegionInitializeEvent event) {
-        //connection.regionMove(event.getPlayer().getUniqueId(), getRegionName(event.getRegion()));
-    }
-
-    @EventHandler
-    public void onQuit(PlayerQuitEvent event) {
-    }
-
-    @EventHandler
     public void onRegionChange(RegionChangeEvent event) {
         String left = getRegionName(event.getLeftRegion());
         String entered = getRegionName(event.getEnteredRegion());
@@ -55,6 +46,6 @@ public class RegionListener implements Listener {
             return;
         }
 
-        connection.regionMove(event.getPlayer().getUniqueId(), entered);
+        connection.playerRegionMove(event.getPlayer().getUniqueId(), entered);
     }
 }

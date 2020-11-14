@@ -9,10 +9,7 @@ import nl.codestix.mcdiscordregions.command.NoDiscordCommand;
 import nl.codestix.mcdiscordregions.listener.PlayerListener;
 import nl.codestix.mcdiscordregions.listener.RegionListener;
 import nl.codestix.mcdiscordregions.websocket.WebSocketConnection;
-import nl.codestix.mcdiscordregions.websocket.WebSocketMessage;
-import nl.codestix.mcdiscordregions.websocket.WebSocketMessageType;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.java_websocket.exceptions.WebsocketNotConnectedException;
@@ -138,7 +135,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
         // User joined Discord channel, send the join message back, this will cause channel move and un-deafen
         String realRegionName = regionListener.getRegionName(WorldGuardHandler.getPlayerRegion(pl));
-        connection.join(pl.getUniqueId(), realRegionName);
+        connection.playerJoin(pl.getUniqueId(), realRegionName);
     }
 
     @Override
@@ -181,7 +178,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         player.sendMessage("§aAwesome, your Minecraft account is now connected to your Discord account. You only have to do this once for all servers that use this feature. Enjoy!");
 
         String realRegionName = regionListener.getRegionName(WorldGuardHandler.getPlayerRegion(player));
-        connection.join(player.getUniqueId(), realRegionName);
+        connection.playerJoin(player.getUniqueId(), realRegionName);
     }
 
     @Override

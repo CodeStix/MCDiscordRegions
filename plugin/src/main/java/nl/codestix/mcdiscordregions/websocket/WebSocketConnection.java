@@ -10,15 +10,13 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class WebSocketConnection extends WebSocketClient implements DiscordConnection {
 
     private DiscordEvents listener;
     private List<Region> regions = new ArrayList<>();
+    private Set<UUID> trackedPlayers = new HashSet<>();
     private String serverId;
 
     public WebSocketConnection(URI serverUri, DiscordEvents listener, String serverId) throws InterruptedException {
@@ -40,6 +38,7 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
             case SyncResponse:
                 return gson.fromJson(json, SyncResponseMessage.class);
             case JoinEvent:
+                return gson.fromJson(json, JoinEventMessage.class);
             case Left:
             case Respawn:
             case Death:
@@ -59,29 +58,37 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     }
 
     @Override
-    public void join(UUID uuid, String regionName) {
+    public void playerJoin(UUID uuid, String regionName) {
+        trackedPlayers.add(uuid);
         getOrCreateRegion(regionName).playerUuids.add(uuid.toString());
         send(new JoinEventMessage(uuid.toString(), regionName));
     }
 
     @Override
-    public void left(UUID uuid) {
+    public void playerLeave(UUID uuid) {
+        trackedPlayers.remove(uuid);
         getPlayerRegion(uuid.toString()).playerUuids.remove(uuid.toString());
         send(new PlayerBasedMessage(WebSocketMessageType.Left, uuid.toString()));
     }
 
     @Override
-    public void death(UUID uuid) {
+    public void playerDeath(UUID uuid) {
+        if (!trackedPlayers.contains(uuid))
+            return;
         send(new PlayerBasedMessage(WebSocketMessageType.Death, uuid.toString()));
     }
 
     @Override
-    public void respawn(UUID uuid) {
+    public void playerRespawn(UUID uuid) {
+        if (!trackedPlayers.contains(uuid))
+            return;
         send(new PlayerBasedMessage(WebSocketMessageType.Respawn, uuid.toString()));
     }
 
     @Override
-    public void regionMove(UUID uuid, String regionName) {
+    public void playerRegionMove(UUID uuid, String regionName) {
+        if (!trackedPlayers.contains(uuid))
+            return;
         String id = uuid.toString();
         getPlayerRegion(id).playerUuids.remove(id);
         getOrCreateRegion(regionName).playerUuids.add(id);
@@ -143,6 +150,15 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
             JoinEventMessage joinMessage = (JoinEventMessage)message;
             listener.userJoined(UUID.fromString(joinMessage.playerUuid), joinMessage.regionName);
         }
+        else if (message instanceof SyncResponseMessage) {
+            SyncResponseMessage syncMessage = (SyncResponseMessage)message;
+            this.regions = syncMessage.regions;
+            this.trackedPlayers.clear();
+            for(Region region : syncMessage.regions) {
+                for(String uuid : region.playerUuids)
+                    this.trackedPlayers.add(UUID.fromString(uuid));
+            }
+        }
         else if (message instanceof PlayerBasedMessage) {
             PlayerBasedMessage playerMessage = (PlayerBasedMessage)message;
             UUID id = UUID.fromString(playerMessage.playerUuid);
@@ -154,11 +170,6 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
                     listener.userBound(id);
                     break;
             }
-        }
-        else if (message instanceof SyncResponseMessage) {
-            Bukkit.getLogger().info("Received sync response: " + s);
-            SyncResponseMessage syncMessage = (SyncResponseMessage)message;
-            this.regions = syncMessage.regions;
         }
     }
 

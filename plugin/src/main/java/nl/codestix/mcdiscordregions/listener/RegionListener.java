@@ -66,6 +66,7 @@ public class RegionListener implements Listener {
 
         if (fullRegions.contains(entered)) {
             event.setCancelled(true);
+            event.getPlayer().sendMessage("§cThis room is full!");
             return;
         }
         fullRegions.remove(left);

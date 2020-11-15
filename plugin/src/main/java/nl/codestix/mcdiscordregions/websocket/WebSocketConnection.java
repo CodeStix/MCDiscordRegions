@@ -55,15 +55,11 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
 
     @Override
     public void playerJoin(UUID uuid, String regionName) {
-        trackedPlayers.add(uuid);
-        getOrCreateRegion(regionName).playerUuids.add(uuid.toString());
         send(new JoinEventMessage(uuid.toString(), regionName));
     }
 
     @Override
     public void playerLeave(UUID uuid) {
-        trackedPlayers.remove(uuid);
-        getPlayerRegion(uuid.toString()).playerUuids.remove(uuid.toString());
         send(new PlayerBasedMessage(WebSocketMessageType.LeaveEvent, uuid.toString()));
     }
 
@@ -155,7 +151,10 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
         }
         else if (message instanceof JoinEventMessage) {
             JoinEventMessage joinMessage = (JoinEventMessage)message;
-            listener.userJoined(UUID.fromString(joinMessage.playerUuid), joinMessage.regionName);
+            UUID id = UUID.fromString(joinMessage.playerUuid);
+            listener.userJoined(id, joinMessage.regionName);
+            trackedPlayers.add(id);
+            getOrCreateRegion(joinMessage.regionName).playerUuids.add(id.toString());
         }
         else if (message instanceof SyncResponseMessage) {
             SyncResponseMessage syncMessage = (SyncResponseMessage)message;
@@ -172,6 +171,8 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
             switch (playerMessage.action) {
                 case LeaveEvent:
                     listener.userLeft(id);
+                    trackedPlayers.remove(id);
+                    getPlayerRegion(id.toString()).playerUuids.remove(id.toString());
                     break;
                 case BoundEvent:
                     listener.userBound(id);

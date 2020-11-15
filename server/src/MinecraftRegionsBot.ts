@@ -199,11 +199,10 @@ export class MinecraftRegionsBot {
         }
     }
 
-    private async getCategory(categoryId: string): Promise<CategoryChannel | null> {
+    private async getCategory(categoryId: string): Promise<CategoryChannel> {
         let channel = await this.discord.channels.fetch(categoryId);
         if (!channel || channel.type !== "category") {
-            logger("is not a category:", categoryId);
-            return null;
+            throw new Error("getCategory: not found");
         } else {
             return channel as CategoryChannel;
         }
@@ -211,8 +210,6 @@ export class MinecraftRegionsBot {
 
     public async getRegions(categoryId: string): Promise<Region[]> {
         let category = await this.getCategory(categoryId);
-        if (!category) throw new Error("getRegions: No category found: " + categoryId);
-
         let regions: Region[] = await Promise.all(
             category.children
                 .filter((channel) => channel.type === "voice")
@@ -232,19 +229,9 @@ export class MinecraftRegionsBot {
 
     private async getVoiceMember(categoryId: string, userId: string): Promise<GuildMember | null> {
         let category = await this.getCategory(categoryId);
-        if (!category) {
-            logger("category %s not found", categoryId);
-            return null;
-        }
         let member = category.guild.members.cache.get(userId);
-        if (!member) {
-            logger("member is not found:", userId);
-            return null;
-        }
-        if (!member.voice.channel) {
-            logger("cannot kick member because he/she is not connected to a voice channel");
-            return null;
-        }
+        if (!member) throw new Error("getVoiceMember: user not found");
+        if (!member.voice.channel) return null;
         return member;
     }
 
@@ -293,22 +280,19 @@ export class MinecraftRegionsBot {
 
     public async kick(categoryId: string, userId: string) {
         const member = await this.getVoiceMember(categoryId, userId);
-        if (!member) return;
-
+        if (!member) throw new Error("kick: member is not in channel");
         await member.voice.kick();
     }
 
     public async deafen(categoryId: string, userId: string, deaf: boolean) {
         const member = await this.getVoiceMember(categoryId, userId);
-        if (!member) return;
-
+        if (!member) throw new Error("deafen: member is not in channel");
         await member.voice.setDeaf(deaf);
     }
 
     public async mute(categoryId: string, userId: string, mute: boolean) {
         const member = await this.getVoiceMember(categoryId, userId);
-        if (!member) return;
-
+        if (!member) throw new Error("mute: member is not in channel");
         await member.voice.setMute(mute);
     }
 
@@ -318,8 +302,6 @@ export class MinecraftRegionsBot {
 
     public async prune(categoryId: string) {
         let category = await this.getCategory(categoryId);
-        if (!category) throw new Error("Category not found");
-
         await Promise.all(
             category.children.map(async (e) => {
                 if (e.type === "voice" && e.members.size === 0 && e.name !== GLOBAL_CHANNEL)
@@ -333,40 +315,21 @@ export class MinecraftRegionsBot {
 
     public async move(categoryId: string, userId: string, channelName: string) {
         let category = await this.getCategory(categoryId);
-        if (!category) {
-            logger("move category %s not found", categoryId);
-            return false;
-        }
         let member = category.guild.members.cache.get(userId);
-        if (!member) {
-            logger("move member is not found:", userId);
-            return false;
-        }
-        if (!member.voice.channel) {
-            logger("cannot move member because he/she is not connected to a voice channel");
-            return false;
-        }
-
-        let moveChannel = await this.getOrCreateRegionChannel(category, channelName);
-        let full = moveChannel.userLimit === 0 || moveChannel.members.size + 1 < moveChannel.userLimit;
+        if (!member) throw new Error("move: user is not found");
+        if (!member.voice.channel) throw new Error("move: user is not in a channel");
 
         const doMove = async () => {
-            if (member!.voice.channel!.name === channelName) {
-                logger("user is already in the right channel");
-                return;
-            }
+            if (member!.voice.channel!.name === channelName) return; // user is already in the right channel
+            let moveChannel = await this.getOrCreateRegionChannel(category, channelName);
             await member!.voice.setChannel(moveChannel, "Moved to this location in Minecraft");
         };
 
         const now = new Date().getTime();
         let lastMove = this.lastMoves.get(userId);
         if (lastMove && now - lastMove < INTERVAL_PER_USER) {
-            // Move the user later, because he got rate limited
-            if (this.laterMoves.has(userId)) {
-                logger("move later: removing previous move");
-                clearTimeout(this.laterMoves.get(userId)!);
-            }
-            logger("move later");
+            // move the user later, because he got rate limited
+            if (this.laterMoves.has(userId)) clearTimeout(this.laterMoves.get(userId)!);
             let timeout = setTimeout(doMove, INTERVAL_PER_USER);
             this.laterMoves.set(userId, timeout);
         } else {
@@ -374,24 +337,14 @@ export class MinecraftRegionsBot {
             await doMove();
             this.lastMoves.set(userId, new Date().getTime());
         }
-        return full;
     }
 
     public async limit(categoryId: string, regionName: string, userLimit: number) {
         let category = await this.getCategory(categoryId);
-        if (!category) {
-            logger("limit category %s not found", categoryId);
-            return false;
-        }
-
         let channel = category.children.find((e) => e.name === regionName) as VoiceChannel;
-        if (!channel || channel.type !== "voice") {
-            logger("limit channel not found");
-            return false;
-        }
+        if (!channel || channel.type !== "voice") throw new Error("limit: channel is not found");
 
         await channel.setUserLimit(userLimit);
         logger("set limit for channel %s to %d", regionName, userLimit);
-        return true;
     }
 }

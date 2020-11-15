@@ -202,8 +202,7 @@ server.on("connection", (client, req) => {
                         if (!serverId) throw new Error("Not authenticated");
                         const categoryId = await getCategory(serverId);
                         if (!categoryId) throw new Error(`No category found for server (${serverId})`);
-                        let result = await bot.limit(categoryId, data.regionName, data.limit);
-                        client.send(new LimitRequestMessage(data.regionName, result ? data.limit : -1).asJSON());
+                        await bot.limit(categoryId, data.regionName, data.limit);
                     }
                     break;
                 case "UnBindRequest":

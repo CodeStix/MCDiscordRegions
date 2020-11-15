@@ -1,16 +1,3 @@
-export type RegionMessageType =
-    | "RegionMoveEvent"
-    | "JoinEvent"
-    | "JoinRequireUserResponse"
-    | "LeaveEvent"
-    | "DeathEvent"
-    | "RespawnEvent"
-    | "BoundEvent"
-    | "LimitRequest"
-    | "UnBindRequest"
-    | "SyncResponse"
-    | "SyncRequest";
-
 class Message<T extends RegionMessageType> {
     action: T;
 
@@ -156,6 +143,20 @@ export class SyncResponseMessage extends Message<"SyncResponse"> {
     }
 }
 
+export type RegionMessageType =
+    | "RegionMoveEvent"
+    | "JoinEvent"
+    | "JoinRequireUserResponse"
+    | "LeaveEvent"
+    | "DeathEvent"
+    | "RespawnEvent"
+    | "BoundEvent"
+    | "LimitRequest"
+    | "UnBindRequest"
+    | "SyncResponse"
+    | "SyncRequest"
+    | "PruneRequest";
+
 export type WebSocketMessage =
     | RegionMoveEventMessage
     | JoinEventMessage
@@ -167,4 +168,5 @@ export type WebSocketMessage =
     | LimitRequestMessage
     | UnBindRequestMessage
     | JoinRequireUserResponseMessage
-    | SyncResponseMessage;
+    | SyncResponseMessage
+    | Message<"PruneRequest">;

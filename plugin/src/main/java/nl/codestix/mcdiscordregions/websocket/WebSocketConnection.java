@@ -92,6 +92,12 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     }
 
     @Override
+    public void pruneRegions() {
+        send(new WebSocketMessage(WebSocketMessageType.PruneRequest));
+        this.regions.removeIf((region) -> region.playerUuids.size() == 0);
+    }
+
+    @Override
     public boolean limitRegion(String regionName, int limit) {
         Region region = getRegion(regionName);
         if (region == null)

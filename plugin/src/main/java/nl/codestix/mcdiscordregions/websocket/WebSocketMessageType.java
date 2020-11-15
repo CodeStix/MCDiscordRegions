@@ -11,5 +11,6 @@ public enum WebSocketMessageType {
     LimitRequest,
     UnBindRequest,
     SyncRequest,
-    SyncResponse
+    SyncResponse,
+    PruneRequest
 }

@@ -68,6 +68,11 @@ public class DiscordRegionsCommand implements CommandExecutor
             }
             return true;
         }
+        else if (strings.length == 1 && strings[0].equalsIgnoreCase("prune")) {
+            commandSender.sendMessage("§cRemoved " + plugin.connection.getRegions().size() + " Discord channels");
+            plugin.connection.pruneRegions();
+            return true;
+        }
         else if (strings.length == 1 && strings[0].equalsIgnoreCase("debug")) {
             Collection<Region> regions = plugin.connection.getRegions();
             for(Region region : regions) {

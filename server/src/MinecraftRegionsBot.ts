@@ -31,6 +31,7 @@ export const PLAYER_REGISTER_CHANNEL = "minecraft-bind";
 export const PLAYER_REGISTER_CHANNEL_DESCRIPTION = "Use this channel to bind your Discord tag to your Minecraft name.";
 export const REGIONS_MANAGER_ROLE = "Minecraft Regions Manager";
 export const INTERVAL_PER_USER = 750;
+export const GLOBAL_CHANNEL = "Global";
 
 export class MinecraftRegionsBot {
     public onUserLeaveChannel: (serverId: string, channel: VoiceChannel, userId: string) => void = () => {};
@@ -192,14 +193,14 @@ export class MinecraftRegionsBot {
             );
 
             // Create or get the global (default channel)
-            let globalChannel = await this.getOrCreateRegionChannel(message.channel.parent!, "Global");
+            let globalChannel = await this.getOrCreateRegionChannel(message.channel.parent!, GLOBAL_CHANNEL);
             // Allow access to the (normally hidden) global channel
             this.overrideChannelAccess(globalChannel, userId, true);
         }
     }
 
-    private getCategory(categoryId: string): CategoryChannel | null {
-        let channel = this.discord.channels.cache.get(categoryId);
+    private async getCategory(categoryId: string): Promise<CategoryChannel | null> {
+        let channel = await this.discord.channels.fetch(categoryId);
         if (!channel || channel.type !== "category") {
             logger("is not a category:", categoryId);
             return null;
@@ -209,7 +210,7 @@ export class MinecraftRegionsBot {
     }
 
     public async getRegions(categoryId: string): Promise<Region[]> {
-        let category = this.getCategory(categoryId);
+        let category = await this.getCategory(categoryId);
         if (!category) throw new Error("getRegions: No category found: " + categoryId);
 
         let regions: Region[] = await Promise.all(
@@ -229,8 +230,8 @@ export class MinecraftRegionsBot {
         return regions;
     }
 
-    private getVoiceMember(categoryId: string, userId: string): GuildMember | null {
-        let category = this.getCategory(categoryId);
+    private async getVoiceMember(categoryId: string, userId: string): Promise<GuildMember | null> {
+        let category = await this.getCategory(categoryId);
         if (!category) {
             logger("category %s not found", categoryId);
             return null;
@@ -291,35 +292,47 @@ export class MinecraftRegionsBot {
     }
 
     public async kick(categoryId: string, userId: string) {
-        const member = this.getVoiceMember(categoryId, userId);
+        const member = await this.getVoiceMember(categoryId, userId);
         if (!member) return;
 
         await member.voice.kick();
     }
 
     public async deafen(categoryId: string, userId: string, deaf: boolean) {
-        const member = this.getVoiceMember(categoryId, userId);
+        const member = await this.getVoiceMember(categoryId, userId);
         if (!member) return;
 
         await member.voice.setDeaf(deaf);
     }
 
     public async mute(categoryId: string, userId: string, mute: boolean) {
-        const member = this.getVoiceMember(categoryId, userId);
+        const member = await this.getVoiceMember(categoryId, userId);
         if (!member) return;
 
         await member.voice.setMute(mute);
     }
 
-    public inCategoryChannel(categoryId: string, userId: string): boolean {
-        return !!this.getVoiceMember(categoryId, userId);
+    public async inCategoryChannel(categoryId: string, userId: string): Promise<boolean> {
+        return !!(await this.getVoiceMember(categoryId, userId));
+    }
+
+    public async prune(categoryId: string) {
+        let category = await this.getCategory(categoryId);
+        if (!category) throw new Error("Category not found");
+
+        await Promise.all(
+            category.children.map(async (e) => {
+                if (e.type === "voice" && e.members.size === 0 && e.name !== GLOBAL_CHANNEL)
+                    await e.delete("Category got pruned");
+            })
+        );
     }
 
     private lastMoves: Map<string, number> = new Map();
     private laterMoves: Map<string, NodeJS.Timeout> = new Map();
 
     public async move(categoryId: string, userId: string, channelName: string) {
-        let category = this.getCategory(categoryId);
+        let category = await this.getCategory(categoryId);
         if (!category) {
             logger("move category %s not found", categoryId);
             return false;
@@ -365,7 +378,7 @@ export class MinecraftRegionsBot {
     }
 
     public async limit(categoryId: string, regionName: string, userLimit: number) {
-        let category = this.getCategory(categoryId);
+        let category = await this.getCategory(categoryId);
         if (!category) {
             logger("limit category %s not found", categoryId);
             return false;

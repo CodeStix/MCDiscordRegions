@@ -102,6 +102,13 @@ server.on("connection", (client, req) => {
 
         try {
             switch (data.action) {
+                case "PruneRequest":
+                    if (!serverId) throw new Error("Not authenticated");
+                    const categoryId = await getCategory(serverId);
+                    if (!categoryId) throw new Error(`No category found for server (${serverId})`);
+                    logger("pruning category", categoryId);
+                    await bot.prune(categoryId);
+                    break;
                 case "SyncRequest":
                     {
                         if (serverId) {
@@ -144,7 +151,7 @@ server.on("connection", (client, req) => {
                                 new JoinRequireUserResponseMessage(data.playerUuid, PLAYER_PREFIX + key).asJSON()
                             );
                             logger("key for player %s: %s", data.playerUuid, key);
-                        } else if (!bot.inCategoryChannel(categoryId, userId)) {
+                        } else if (!(await bot.inCategoryChannel(categoryId, userId))) {
                             client.send(new JoinRequireUserResponseMessage(data.playerUuid).asJSON());
                             logger("user needs to be in discord channel");
                         } else {

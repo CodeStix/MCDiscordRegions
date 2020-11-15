@@ -122,7 +122,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
                 getLogger().info("Kicked player " + player.getName());
             }
         }
-
     }
 
     @Override

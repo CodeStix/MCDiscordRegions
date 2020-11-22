@@ -236,7 +236,7 @@ export class MinecraftRegionsBot {
     }
 
     private async getOrCreateRegionManagerRole(guild: Guild) {
-        let role = guild.roles.cache.find((role) => role.name === "Regions Manager");
+        let role = guild.roles.cache.find((role) => role.name === REGIONS_MANAGER_ROLE);
         if (!role) {
             role = await guild.roles.create({
                 data: { name: REGIONS_MANAGER_ROLE, mentionable: true, color: [255, 128, 64] },

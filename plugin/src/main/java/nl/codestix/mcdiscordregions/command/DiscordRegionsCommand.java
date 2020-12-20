@@ -32,71 +32,93 @@ public class DiscordRegionsCommand implements CommandExecutor
     @Override
     public boolean onCommand(CommandSender commandSender, Command command, String s, String[] strings) {
 
-        if (!commandSender.hasPermission("discordregions.modify"))
-            return false;
+        if (!commandSender.hasPermission("discordregions.modify")) {
+            commandSender.sendMessage("§cYou don't have the permission to use this command.");
+            return true;
+        }
 
-        if (strings.length == 1 && strings[0].equalsIgnoreCase("save")) {
-            plugin.saveConfig();
-            commandSender.sendMessage("§dSettings were written to config file.");
-            return true;
-        }
-        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("whitelist")) {
-            if (strings.length >= 2) {
-                plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_USE_WHITELIST, strings[1].equalsIgnoreCase("on"));
-            }
-            commandSender.sendMessage("§dThe Discord-bound whitelist is " + (plugin.getConfig().getBoolean(MCDiscordRegionsPlugin.CONFIG_USE_WHITELIST, false) ? "on" : "off"));
-            return true;
-        }
-        else if (strings.length >= 1 && strings[0].equalsIgnoreCase("kick")) {
-            if (strings.length >= 2) {
-                plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE, strings[1].equalsIgnoreCase("on"));
-                if (strings.length >= 3) {
-                    plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE_MESSAGE, join(" ", 2, strings));
+        switch (strings.length > 0 ? strings[0] : "help")
+        {
+            case "whitelist": {
+                if (strings.length >= 2) {
+                    plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_USE_WHITELIST, strings[1].equalsIgnoreCase("on"));
+                    plugin.saveConfig();
                 }
-            }
-            commandSender.sendMessage("§dDiscord leave bound kicking is " + (plugin.getConfig().getBoolean(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE, false) ? "on" : "off"));
-            commandSender.sendMessage("§dKick message: " + plugin.getConfig().getString(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE_MESSAGE));
-            return true;
-        }
-        else if (strings.length >= 2 && strings[0].equalsIgnoreCase("limit")) {
-            int limit = Integer.parseInt(strings[1]);
-            String regionName;
-            if (strings.length >= 3) {
-                regionName =  join(" ", 2, strings);
-            }
-            else if (commandSender instanceof Player) {
-                regionName = plugin.getRegionName(WorldGuardHandler.getPlayerRegion((Player)commandSender));
-            }
-            else {
-                commandSender.sendMessage("§cUse /drg limit <limit> <regionName...>");
+                commandSender.sendMessage("§dThe Discord-bound whitelist is " + (plugin.getConfig().getBoolean(MCDiscordRegionsPlugin.CONFIG_USE_WHITELIST, false) ? "on" : "off"));
                 return true;
             }
-            if (limit < 0 || limit > 100) {
-                commandSender.sendMessage("§cUser limit should be in range 0-100, 0 meaning no limit.");
-            }
-            else if (plugin.connection.limitRegion(regionName, limit)) {
-                commandSender.sendMessage("§dSet the limit for " + regionName + " to " + limit);
-            }
-            else {
-                commandSender.sendMessage("§cCould not set limit for region " + regionName);
-            }
-            return true;
-        }
-        else if (strings.length == 1 && strings[0].equalsIgnoreCase("prune")) {
-            commandSender.sendMessage("§cRemoved " + plugin.connection.getRegions().size() + " Discord channels");
-            plugin.connection.pruneRegions();
-            return true;
-        }
-        else if (strings.length == 1 && strings[0].equalsIgnoreCase("debug")) {
-            Collection<Region> regions = plugin.connection.getRegions();
-            for(Region region : regions) {
-                commandSender.sendMessage(String.format("§dRegion %s (limit=%d)", region.name, region.limit));
-                for(String uuid : region.playerUuids) {
-                    Player pl = plugin.getServer().getPlayer(UUID.fromString(uuid));
-                    commandSender.sendMessage(String.format(" - Player %s (uuid=%s)", pl == null ? "<null>" : pl.getName(), uuid));
+
+            case "kick": {
+                if (strings.length >= 2) {
+                    plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE, strings[1].equalsIgnoreCase("on"));
+                    if (strings.length >= 3) {
+                        plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE_MESSAGE, join(" ", 2, strings));
+                    }
+                    plugin.saveConfig();
                 }
+                commandSender.sendMessage("§dDiscord leave bound kicking is " + (plugin.getConfig().getBoolean(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE, false) ? "on" : "off"));
+                commandSender.sendMessage("§dKick message: " + plugin.getConfig().getString(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE_MESSAGE));
+                return true;
             }
-            return true;
+
+            case "limit": {
+                if (strings.length < 2)
+                    break;
+
+                int limit = Integer.parseInt(strings[1]);
+                String regionName;
+                if (strings.length >= 3) {
+                    regionName =  join(" ", 2, strings);
+                }
+                else if (commandSender instanceof Player) {
+                    regionName = plugin.getRegionName(WorldGuardHandler.getPlayerRegion((Player)commandSender));
+                }
+                else {
+                    commandSender.sendMessage("§cUse /drg limit <limit> <regionName...>");
+                    return true;
+                }
+
+                if (limit < 0 || limit > 100) {
+                    commandSender.sendMessage("§cUser limit should be in range 0-100, 0 meaning no limit.");
+                }
+                else if (plugin.connection.limitRegion(regionName, limit)) {
+                    commandSender.sendMessage("§dSet the limit for " + regionName + " to " + limit);
+                }
+                else {
+                    commandSender.sendMessage("§cCould not set limit for region " + regionName);
+                }
+                return true;
+            }
+
+            case "prune": {
+                if (strings.length != 1)
+                    break;
+                commandSender.sendMessage("§cRemoved " + plugin.connection.getRegions().size() + " Discord channels");
+                plugin.connection.pruneRegions();
+                return true;
+            }
+
+            case "debug": {
+                if (strings.length != 1)
+                    break;
+                Collection<Region> regions = plugin.connection.getRegions();
+                for(Region region : regions) {
+                    commandSender.sendMessage(String.format("§dRegion %s (limit=%d)", region.name, region.limit));
+                    for(String uuid : region.playerUuids) {
+                        Player pl = plugin.getServer().getPlayer(UUID.fromString(uuid));
+                        commandSender.sendMessage(String.format(" - Player %s (uuid=%s)", pl == null ? "<null>" : pl.getName(), uuid));
+                    }
+                }
+                return true;
+            }
+
+            case "reload": {
+                if (strings.length != 1)
+                    break;
+                plugin.reloadConfig();
+                commandSender.sendMessage("§dReloaded config.");
+                return true;
+            }
         }
 
         commandSender.sendMessage("§cUnknown arguments. Usage: " + command.getUsage());

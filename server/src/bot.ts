@@ -32,6 +32,9 @@ export const PLAYER_PREFIX = "###";
 export const PLAYER_REGISTER_CHANNEL = "minecraft-bind";
 export const PLAYER_REGISTER_CHANNEL_DESCRIPTION = "Use this channel to bind your Discord tag to your Minecraft name.";
 export const REGIONS_MANAGER_ROLE = "Minecraft Regions Manager";
+
+// Each player can only be moved to a Discord channel each x milliseconds. (minimum time between moves)
+// You should keep this number around 1000 ms to ensure not rate limiting your Discord server.
 export const INTERVAL_PER_USER = 750;
 export const GLOBAL_CHANNEL = "Global";
 
@@ -193,7 +196,7 @@ export class MinecraftRegionsBot {
             logger(`user ${userId} tried to revoke invalid key '${key}'`);
             message.channel.send(
                 this.createErrorMessage(
-                    `❌ That is not a valid Minecraft code. You can receive a code when you join the Minecraft server. These codes are CaSe SeNsiTiVe.`
+                    `That is not a valid Minecraft code. You can receive a code when you join the Minecraft server. These codes are CaSe SeNsiTiVe.`
                 )
             );
         } else {

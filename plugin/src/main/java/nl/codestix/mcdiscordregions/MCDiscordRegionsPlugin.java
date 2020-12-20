@@ -36,7 +36,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     public static final String CONFIG_USE_WHITELIST = "use-whitelist";
     public static final String CONFIG_KICK_DISCORD_LEAVE = "kick-on-discord-leave";
     public static final String CONFIG_KICK_DISCORD_LEAVE_MESSAGE = "kick-on-discord-leave-message";
-    public static final String CONFIG_MIN_MOVE_INTERVAL = "min-move-interval";
 
     private WorldGuardHandler.Factory worldGuardHandlerFactory;
     private static MCDiscordRegionsPlugin instance;

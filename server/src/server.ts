@@ -170,8 +170,8 @@ server.on("connection", (client, req) => {
                     const userId = await getUser(data.playerUuid);
                     if (!userId) throw new Error("No user found");
                     let channel = data.regionName ?? "Global";
-                    await bot.move(categoryId, userId, channel);
                     setLastRegion(categoryId, userId, channel);
+                    await bot.move(categoryId, userId, channel);
                     break;
                 }
 
@@ -191,18 +191,6 @@ server.on("connection", (client, req) => {
                     await bot.limit(categoryId, data.regionName, data.limit);
                     break;
                 }
-
-                // case "UnBindRequest": {
-                //     const userId = await getUser(data.playerUuid);
-                //     if (!userId) return;
-                //     deletePlayer(data.playerUuid);
-                //     deleteUser(userId);
-                //     if (serverId) {
-                //         const categoryId = await getCategory(serverId);
-                //         if (categoryId) await bot.kick(categoryId, userId);
-                //     }
-                //     break;
-                // }
 
                 default: {
                     clientLogger(`received unhandled action`, data);

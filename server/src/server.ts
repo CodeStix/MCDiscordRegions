@@ -6,10 +6,12 @@ import {
     deletePlayer,
     deleteUser,
     getCategory,
+    getLastRegion,
     getPlayer,
     getServer,
     getUser,
     rateLimit,
+    setLastRegion,
 } from "./redis";
 import {
     BoundEventMessage,
@@ -150,6 +152,7 @@ server.on("connection", (client, req) => {
                     } else if (!(await bot.inCategoryChannel(categoryId, userId))) {
                         client.send(new JoinRequireUserResponseMessage(data.playerUuid).asJSON());
                         clientLogger("user needs to be in discord channel");
+                        if (!(await getLastRegion(categoryId, userId))) await bot.allowGlobalAccess(categoryId, userId);
                     } else {
                         await bot.move(categoryId, userId, data.regionName);
                         await bot.deafen(categoryId, userId, false);
@@ -166,7 +169,9 @@ server.on("connection", (client, req) => {
                 case "RegionMoveEvent": {
                     const userId = await getUser(data.playerUuid);
                     if (!userId) throw new Error("No user found");
-                    await bot.move(categoryId, userId, data.regionName ?? "Global");
+                    let channel = data.regionName ?? "Global";
+                    await bot.move(categoryId, userId, channel);
+                    setLastRegion(categoryId, userId, channel);
                     break;
                 }
 

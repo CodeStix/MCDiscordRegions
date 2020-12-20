@@ -118,7 +118,7 @@ export class MinecraftRegionsBot {
         logger(`category (${category.id}) got removed, causing server (${server}) to be removed too`);
     }
 
-    private handleChannelCreate(channel: Channel) {
+    private async handleChannelCreate(channel: Channel) {
         if (channel.type !== "category") return;
         let category = channel as CategoryChannel;
         if (category.name.startsWith(CATEGORY_PREFIX)) {
@@ -126,9 +126,10 @@ export class MinecraftRegionsBot {
             registerServer(serverId, category.id);
             category.setName("Minecraft Regions", "Category got registered as Minecraft Regions category.");
 
+            // Create minecraft-bind text channel
             let registerChannel = category.children.find((e) => e.name === PLAYER_REGISTER_CHANNEL);
             if (!registerChannel) {
-                category.guild.channels.create(PLAYER_REGISTER_CHANNEL, {
+                await category.guild.channels.create(PLAYER_REGISTER_CHANNEL, {
                     parent: category,
                     type: "text",
                     position: 0,
@@ -136,6 +137,9 @@ export class MinecraftRegionsBot {
                     topic: PLAYER_REGISTER_CHANNEL_DESCRIPTION,
                 });
             }
+
+            // Create global channel
+            await this.getOrCreateRegionChannel(category, GLOBAL_CHANNEL);
 
             logger(`category (${category.id}) created for server (${serverId})`);
         }
@@ -204,11 +208,16 @@ export class MinecraftRegionsBot {
                 )
             );
 
-            // Create or get the global (default channel)
-            let globalChannel = await this.getOrCreateRegionChannel(message.channel.parent!, GLOBAL_CHANNEL);
-            // Allow access to the (normally hidden) global channel
-            this.overrideChannelAccess(globalChannel, userId, true);
+            await this.allowGlobalAccess(message.channel.parent!, userId);
         }
+    }
+
+    public async allowGlobalAccess(category: CategoryChannel | string, userId: string) {
+        if (typeof category === "string") category = await this.getCategory(category);
+        // Create or get the global (default channel)
+        let globalChannel = await this.getOrCreateRegionChannel(category, GLOBAL_CHANNEL);
+        // Allow access to the (normally hidden) global channel
+        this.overrideChannelAccess(globalChannel, userId, true);
     }
 
     private async getCategory(categoryId: string): Promise<CategoryChannel> {
@@ -241,7 +250,7 @@ export class MinecraftRegionsBot {
 
     private async getVoiceMember(categoryId: string, userId: string): Promise<GuildMember | null> {
         let category = await this.getCategory(categoryId);
-        let member = category.guild.members.cache.get(userId);
+        let member = await category.guild.members.fetch(userId);
         if (!member) throw new Error("getVoiceMember: user not found");
         if (!member.voice.channel) return null;
         return member;
@@ -263,27 +272,28 @@ export class MinecraftRegionsBot {
             // Set permissions: everyone but the bot and Minecraft Regions Managers can see the created regions channels
             let everyone = category.guild.roles.everyone;
             let manager = await this.getOrCreateRegionManagerRole(category.guild);
+            let permissions: OverwriteResolvable[] = [
+                {
+                    id: everyone,
+                    type: "role",
+                    deny: ["CONNECT", "VIEW_CHANNEL"],
+                },
+                {
+                    id: category.guild.me!,
+                    type: "member",
+                    allow: ["CONNECT", "VIEW_CHANNEL"],
+                },
+                {
+                    id: manager,
+                    type: "role",
+                    allow: ["CONNECT", "VIEW_CHANNEL"],
+                },
+            ];
             return await category.guild.channels.create(name, {
                 type: "voice",
                 parent: category,
-                reason: "This location does exist in Minecraft",
-                permissionOverwrites: [
-                    {
-                        id: everyone,
-                        type: "role",
-                        deny: ["CONNECT", "VIEW_CHANNEL"],
-                    },
-                    {
-                        id: category.guild.me!,
-                        type: "member",
-                        allow: ["CONNECT", "VIEW_CHANNEL"],
-                    },
-                    {
-                        id: manager,
-                        type: "role",
-                        allow: ["CONNECT", "VIEW_CHANNEL"],
-                    },
-                ],
+                reason: "Minecraft Regions bot generated",
+                permissionOverwrites: permissions,
             });
         } else {
             return channel as VoiceChannel;
@@ -327,7 +337,7 @@ export class MinecraftRegionsBot {
 
     public async move(categoryId: string, userId: string, channelName: string) {
         let category = await this.getCategory(categoryId);
-        let member = category.guild.members.cache.get(userId);
+        let member = await category.guild.members.fetch(userId);
         if (!member) throw new Error("move: user is not found");
         if (!member.voice.channel) throw new Error("move: user is not in a channel");
 

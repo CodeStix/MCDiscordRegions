@@ -1,14 +1,18 @@
 
-# When true, players who register themselves with the bot, will be automatically whitelisted. And when they leave the discord channel, they will be un-whitelisted.
-# You are forcing players to join the discord server.
+# Do not modify these if you don't know what they mean
+id: null
+host: ws://mcdr.codestix.nl
+
+# When true, you are forcing players to join your Discord channels. When players enter the Discord channel, they will be allowed into the Minecraft server.
 use-whitelist: false
 
-# When true, kicks the player when he/she leaves the Minecraft regions Discord category (specified by discord.category).
+# When true, kicks the player when he/she leaves the Minecraft-related Discord channels.
 kick-on-discord-leave: true
 kick-on-discord-leave-message: Not registered.
 
 # Each player can only be moved to a Discord channel each x milliseconds. (minimum time between moves)
+# You should keep this number around 1000 ms to ensure not rate limiting your Discord server.
 min-move-interval: 1000
 
-# The name of the Discord channel when the player is in no region (aka the global region)
+# The name of the Discord channel when the player is in no region. (aka the global region)
 global-region-name: Global

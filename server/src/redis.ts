@@ -71,6 +71,14 @@ export async function getPlayer(userId: string) {
     return await getAsync(`user:${userId}`);
 }
 
+export async function getLastRegion(categoryId: string, userId: string) {
+    return await getAsync(`user:${userId}:category:${categoryId}:last`);
+}
+
+export function setLastRegion(categoryId: string, userId: string, region: string) {
+    client.set(`user:${userId}:category:${categoryId}:last`, region);
+}
+
 /**
  * Generates a bind key that will be used to identify a player.
  * @param forUuid The player's uuid

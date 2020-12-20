@@ -11,6 +11,7 @@ import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class WebSocketConnection extends WebSocketClient implements DiscordConnection {
 
@@ -50,7 +51,12 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
     }
 
     private void send(WebSocketMessage message) {
-        send(message.toJSON());
+        if (isClosed() || isClosing()) {
+            reconnect();
+        }
+        else {
+            send(message.toJSON());
+        }
     }
 
     @Override
@@ -180,7 +186,7 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
 
     @Override
     public void onClose(int i, String s, boolean b) {
-        Bukkit.getLogger().warning("Connection lost with Discord bot.");
+        Bukkit.getLogger().warning("Connection lost with Discord bot. Will try reconnecting when necessary.");
     }
 
     @Override

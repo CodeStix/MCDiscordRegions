@@ -78,7 +78,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         String host = getConfig().getString(CONFIG_HOST, "ws://localhost:8080");
         getLogger().info("Connecting to Discord Regions bot at " + host);
         try {
-            connection = new WebSocketConnection(new URI(host), this, serverId );
+            connection = new WebSocketConnection(new URI(host), this, serverId);
         } catch (URISyntaxException e) {
             getLogger().severe("Could not connect to Discord bot, invalid host: " + host);
             getPluginLoader().disablePlugin(this);

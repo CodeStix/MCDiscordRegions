@@ -21,7 +21,7 @@ import {
     revokePlayerBind,
 } from "./redis";
 import { getIGN } from "./minecraft";
-import { Region } from "./WebSocketMessage";
+import { Region } from "./messages";
 
 const logger = debug("mcdr:discord-bot");
 

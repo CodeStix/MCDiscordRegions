@@ -21,8 +21,8 @@ import {
     JoinRequireUserResponseMessage,
     SyncResponseMessage,
     WebSocketMessage,
-} from "./WebSocketMessage";
-import { MinecraftRegionsBot, PLAYER_PREFIX } from "./MinecraftRegionsBot";
+} from "./messages";
+import { MinecraftRegionsBot, PLAYER_PREFIX } from "./bot";
 
 const logger = debug("mcdr:server");
 

@@ -4,6 +4,7 @@ import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.StringFlag;
 import com.sk89q.worldguard.protection.flags.registry.FlagRegistry;
+import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import nl.codestix.mcdiscordregions.command.DiscordRegionsCommand;
 import nl.codestix.mcdiscordregions.listener.PlayerListener;
 import nl.codestix.mcdiscordregions.listener.RegionListener;
@@ -25,6 +26,9 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     public PlayerListener playerListener;
     public DiscordConnection connection;
     public DiscordRegionsCommand command;
+    public StringFlag discordChannelFlag = new StringFlag("discord-channel");
+    public String serverId;
+    public String globalRegionName;
 
     public static final String CONFIG_HOST = "host";
     public static final String CONFIG_ID = "id";
@@ -34,14 +38,20 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     public static final String CONFIG_KICK_DISCORD_LEAVE_MESSAGE = "kick-on-discord-leave-message";
     public static final String CONFIG_MIN_MOVE_INTERVAL = "min-move-interval";
 
-    private StringFlag discordChannelFlag = new StringFlag("discord-channel");
     private WorldGuardHandler.Factory worldGuardHandlerFactory;
-    private String serverId;
-
     private static MCDiscordRegionsPlugin instance;
-
     public static MCDiscordRegionsPlugin getInstance() {
         return instance;
+    }
+
+    public String getRegionName(ProtectedRegion region) {
+        if (region == null) {
+            return globalRegionName;
+        }
+        else {
+            String flag = region.getFlag(discordChannelFlag);
+            return flag == null ? globalRegionName : flag;
+        }
     }
 
     @Override
@@ -87,10 +97,10 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         WorldGuard.getInstance().getPlatform().getSessionManager().registerHandler(worldGuardHandlerFactory, null);
 
         // Configure event listeners
-        String globalRegionName = getConfig().getString(CONFIG_GLOBAL_REGION, "Global");
-        regionListener = new RegionListener(discordChannelFlag, connection, globalRegionName);
+        globalRegionName = getConfig().getString(CONFIG_GLOBAL_REGION, "Global");
+        regionListener = new RegionListener(this);
         Bukkit.getPluginManager().registerEvents(regionListener, this);
-        playerListener = new PlayerListener(connection, regionListener);
+        playerListener = new PlayerListener(this);
         Bukkit.getPluginManager().registerEvents(playerListener, this);
 
         // Configure commands
@@ -131,7 +141,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         getLogger().info("Player " + pl.getName() + " joined discord channel " + regionName);
 
         // User joined Discord channel, send the join message back, this will cause channel move and un-deafen
-        String realRegionName = regionListener.getRegionName(WorldGuardHandler.getPlayerRegion(pl));
+        String realRegionName = getRegionName(WorldGuardHandler.getPlayerRegion(pl));
         connection.playerJoin(pl.getUniqueId(), realRegionName);
     }
 
@@ -174,7 +184,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
         player.sendMessage("§aAwesome, your Minecraft account is now connected to your Discord account. You only have to do this once for all servers that use this feature. Enjoy!");
 
-        String realRegionName = regionListener.getRegionName(WorldGuardHandler.getPlayerRegion(player));
+        String realRegionName = getRegionName(WorldGuardHandler.getPlayerRegion(player));
         connection.playerJoin(player.getUniqueId(), realRegionName);
     }
 }

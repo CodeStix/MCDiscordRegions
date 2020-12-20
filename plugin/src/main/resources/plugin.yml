@@ -12,7 +12,7 @@ commands:
  dregion:
    aliases: [drg]
    description: Configure the MCDiscordRegions plugin.
-   usage: /dregion [whitelist [on|off] | kick [on|off] [kickMessage...] | limit <maxUsers> <channelName...> | prune]
+   usage: /dregion [whitelist [on|off] | kick [on|off] [kickMessage...] | limit <maxUsers> [channelName...] | prune]
 
 permissions:
   discordregions.*:
@@ -20,7 +20,6 @@ permissions:
     default: false
     children:
       discordregions.modify: true
-      discordregions.unbound: true
 
   discordregions.modify:
     description: Permission use the /drg command to modify settings.

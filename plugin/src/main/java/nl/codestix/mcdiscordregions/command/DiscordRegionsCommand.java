@@ -2,6 +2,7 @@ package nl.codestix.mcdiscordregions.command;
 
 import nl.codestix.mcdiscordregions.MCDiscordRegionsPlugin;
 import nl.codestix.mcdiscordregions.Region;
+import nl.codestix.mcdiscordregions.WorldGuardHandler;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -57,9 +58,19 @@ public class DiscordRegionsCommand implements CommandExecutor
             commandSender.sendMessage("§dKick message: " + plugin.getConfig().getString(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE_MESSAGE));
             return true;
         }
-        else if (strings.length >= 3 && strings[0].equalsIgnoreCase("limit")) {
+        else if (strings.length >= 2 && strings[0].equalsIgnoreCase("limit")) {
             int limit = Integer.parseInt(strings[1]);
-            String regionName = join(" ", 2, strings);
+            String regionName;
+            if (strings.length >= 3) {
+                regionName =  join(" ", 2, strings);
+            }
+            else if (commandSender instanceof Player) {
+                regionName = plugin.getRegionName(WorldGuardHandler.getPlayerRegion((Player)commandSender));
+            }
+            else {
+                commandSender.sendMessage("§cUse /drg limit <limit> <regionName...>");
+                return true;
+            }
             if (limit < 0 || limit > 100) {
                 commandSender.sendMessage("§cUser limit should be in range 0-100, 0 meaning no limit.");
             }

@@ -5,7 +5,6 @@ import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.StringFlag;
 import com.sk89q.worldguard.protection.flags.registry.FlagRegistry;
 import nl.codestix.mcdiscordregions.command.DiscordRegionsCommand;
-import nl.codestix.mcdiscordregions.command.NoDiscordCommand;
 import nl.codestix.mcdiscordregions.listener.PlayerListener;
 import nl.codestix.mcdiscordregions.listener.RegionListener;
 import nl.codestix.mcdiscordregions.websocket.WebSocketConnection;
@@ -97,7 +96,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         // Configure commands
         command = new DiscordRegionsCommand(this);
         getCommand("dregion").setExecutor(command);
-        getCommand("nodiscord").setExecutor(new NoDiscordCommand(connection));
 
         getLogger().info("Is configured correctly!");
         instance = this;

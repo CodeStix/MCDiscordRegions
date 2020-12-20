@@ -11,7 +11,6 @@ public interface DiscordConnection {
     void playerRegionMove(UUID uuid, String regionName);
     void pruneRegions();
     boolean limitRegion(String regionName, int limit);
-    void unbind(UUID uuid);
     void close();
     Region getOrCreateRegion(String regionName);
     Collection<Region> getRegions();

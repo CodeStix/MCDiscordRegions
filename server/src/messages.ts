@@ -122,12 +122,6 @@ export class LimitRequestMessage extends Message<"LimitRequest"> {
     }
 }
 
-export class UnBindRequestMessage extends PlayerMessage<"UnBindRequest"> {
-    constructor(playerUuid: string) {
-        super("UnBindRequest", playerUuid);
-    }
-}
-
 export interface Region {
     name: string;
     playerUuids: string[];
@@ -152,7 +146,6 @@ export type RegionMessageType =
     | "RespawnEvent"
     | "BoundEvent"
     | "LimitRequest"
-    | "UnBindRequest"
     | "SyncResponse"
     | "SyncRequest"
     | "PruneRequest";
@@ -166,7 +159,6 @@ export type WebSocketMessage =
     | SyncRequestMessage
     | BoundEventMessage
     | LimitRequestMessage
-    | UnBindRequestMessage
     | JoinRequireUserResponseMessage
     | SyncResponseMessage
     | Message<"PruneRequest">;

@@ -13,7 +13,9 @@ import {
 import { debug } from "debug";
 import {
     deleteCategory,
+    deletePlayer,
     deleteServer,
+    deleteUser,
     getPlayer,
     getServer,
     registerPlayer,
@@ -26,7 +28,7 @@ import { Region } from "./messages";
 const logger = debug("mcdr:discord-bot");
 
 export const CATEGORY_PREFIX = "###";
-export const PLAYER_PREFIX = "#";
+export const PLAYER_PREFIX = "###";
 export const PLAYER_REGISTER_CHANNEL = "minecraft-bind";
 export const PLAYER_REGISTER_CHANNEL_DESCRIPTION = "Use this channel to bind your Discord tag to your Minecraft name.";
 export const REGIONS_MANAGER_ROLE = "Minecraft Regions Manager";
@@ -41,7 +43,7 @@ export class MinecraftRegionsBot {
 
     constructor(token: string) {
         logger("connecting to Discord...");
-        this.discord = new DiscordBot();
+        this.discord = new DiscordBot({ disableMentions: "all" });
         this.discord.once("ready", this.connectHandler.bind(this));
         this.discord.on("voiceStateUpdate", this.handleVoiceStateUpdate.bind(this));
         this.discord.on("channelDelete", this.handleChannelDelete.bind(this));
@@ -171,7 +173,17 @@ export class MinecraftRegionsBot {
             return;
         }
 
-        let key = message.content.substring(PLAYER_PREFIX.length);
+        let key = message.content.substring(PLAYER_PREFIX.length).trim();
+        if (key === "remove") {
+            deletePlayer((await getPlayer(userId))!);
+            deleteUser(userId);
+            message.channel.send(
+                this.createSuccessMessage(`${message.author.username}, I removed your Minecraft-Discord connection.`)
+            );
+            if (await this.inCategoryChannel(categoryId, userId)) await this.kick(categoryId, userId);
+            return;
+        }
+
         let uuid = await revokePlayerBind(key);
         if (!uuid) {
             logger(`user ${userId} tried to revoke invalid key '${key}'`);
@@ -188,7 +200,7 @@ export class MinecraftRegionsBot {
             let ign = await getIGN(uuid);
             message.channel.send(
                 this.createSuccessMessage(
-                    `${message.author.username}, your Discord account is now connected to your Minecraft account ${ign}!`
+                    `${message.author.username}, your Discord account is now connected to your Minecraft account ${ign}!\nYou can remove this connection by typing ${PLAYER_PREFIX}remove`
                 )
             );
 

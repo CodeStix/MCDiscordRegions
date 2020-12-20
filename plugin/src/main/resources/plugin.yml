@@ -25,7 +25,3 @@ permissions:
   discordregions.modify:
     description: Permission use the /drg command to modify settings.
     default: op
-
-  discordregions.unbound:
-    description: Permission to use the /nodiscord command. Which unbounds Discord from Minecraft.
-    default: true

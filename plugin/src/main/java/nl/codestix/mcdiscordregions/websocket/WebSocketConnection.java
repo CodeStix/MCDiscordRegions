@@ -105,11 +105,6 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
         return true;
     }
 
-    @Override
-    public void unbind(UUID uuid) {
-        send(new UnBindRequestMessage(uuid.toString()));
-    }
-
     private Region getRegion(String regionName) {
         for(Region region : regions)
             if (region.name.equalsIgnoreCase(regionName))

@@ -55,8 +55,6 @@ public class WebSocketConnection extends WebSocketClient implements DiscordConne
 
     @Override
     public void playerJoin(UUID uuid, String regionName) {
-        if (!trackedPlayers.contains(uuid))
-            return;
         send(new JoinEventMessage(uuid.toString(), regionName));
     }
 

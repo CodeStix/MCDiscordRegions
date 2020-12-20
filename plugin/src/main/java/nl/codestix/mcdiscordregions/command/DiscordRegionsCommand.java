@@ -60,7 +60,10 @@ public class DiscordRegionsCommand implements CommandExecutor
         else if (strings.length >= 3 && strings[0].equalsIgnoreCase("limit")) {
             int limit = Integer.parseInt(strings[1]);
             String regionName = join(" ", 2, strings);
-            if (plugin.connection.limitRegion(regionName, limit)) {
+            if (limit < 0 || limit > 100) {
+                commandSender.sendMessage("§cUser limit should be in range 0-100, 0 meaning no limit.");
+            }
+            else if (plugin.connection.limitRegion(regionName, limit)) {
                 commandSender.sendMessage("§dSet the limit for " + regionName + " to " + limit);
             }
             else {

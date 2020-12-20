@@ -100,126 +100,109 @@ server.on("connection", (client, req) => {
             return;
         }
 
+        if (data.action === "SyncRequest") {
+            if (serverId) {
+                logger("server %s is authenticating for the second time.", serverId);
+                connections.delete(serverId);
+            }
+            serverId = data.serverId;
+            connections.set(serverId, client);
+            clientLogger("authenticated as %s", serverId);
+
+            const categoryId = await getCategory(serverId);
+            let regions: Region[] = [];
+            if (!categoryId) {
+                regions = [];
+            } else {
+                regions = await bot.getRegions(categoryId);
+            }
+            client.send(new SyncResponseMessage(regions).asJSON());
+            return;
+        }
+
+        if (!serverId) {
+            clientLogger("tried to execute action %s without auth", data.action);
+            return;
+        }
+
+        let categoryId = await getCategory(serverId);
+        if (!categoryId) {
+            clientLogger(`no category found for Discord server ${serverId}`);
+            return;
+        }
+
         try {
             switch (data.action) {
-                case "PruneRequest":
-                    if (!serverId) throw new Error("Not authenticated");
-                    const categoryId = await getCategory(serverId);
-                    if (!categoryId) throw new Error(`No category found for server (${serverId})`);
-                    logger("pruning category", categoryId);
+                case "PruneRequest": {
+                    clientLogger("pruning category", categoryId);
                     await bot.prune(categoryId);
                     break;
-                case "SyncRequest":
-                    {
-                        if (serverId) {
-                            logger("server %s is authenticating for the second time.", serverId);
-                            connections.delete(serverId);
-                        }
-                        serverId = data.serverId;
-                        connections.set(serverId, client);
-                        clientLogger("authenticated as %s", serverId);
+                }
 
-                        const categoryId = await getCategory(serverId);
-                        let regions: Region[] = [];
-                        if (!categoryId) {
-                            regions = [];
-                        } else {
-                            regions = await bot.getRegions(categoryId);
-                        }
-                        client.send(new SyncResponseMessage(regions).asJSON());
+                // Fired when a player joined the minecraft server or if a player bound its Discord account
+                case "JoinEvent": {
+                    const userId = await getUser(data.playerUuid);
+                    if (!userId) {
+                        // Generate a temporary key that will be used to bind the Minecraft player to the Discord user
+                        let key = await createPlayerBind(data.playerUuid);
+                        client.send(new JoinRequireUserResponseMessage(data.playerUuid, PLAYER_PREFIX + key).asJSON());
+                        clientLogger("key for player %s: %s", data.playerUuid, key);
+                    } else if (!(await bot.inCategoryChannel(categoryId, userId))) {
+                        client.send(new JoinRequireUserResponseMessage(data.playerUuid).asJSON());
+                        clientLogger("user needs to be in discord channel");
+                    } else {
+                        await bot.move(categoryId, userId, data.regionName);
+                        await bot.deafen(categoryId, userId, false);
                     }
-                    break;
-                case "SyncRequest": {
-                    if (!serverId) throw new Error("Not authenticated");
-                    const categoryId = await getCategory(serverId);
-                    if (!categoryId) throw new Error(`No category found for server (${serverId})`);
-                    let regions = await bot.getRegions(categoryId);
-                    client.send(new SyncResponseMessage(regions).asJSON());
                     break;
                 }
-                // Fired when a player joined the minecraft server or if a player bound its Discord account
-                case "JoinEvent":
-                    {
-                        if (!serverId) throw new Error("Not authenticated");
-                        const categoryId = await getCategory(serverId);
-                        if (!categoryId) throw new Error(`No category found for server (${serverId})`);
-                        const userId = await getUser(data.playerUuid);
-                        if (!userId) {
-                            // Generate a temporary key that will be used to bind the Minecraft player to the Discord user
-                            let key = await createPlayerBind(data.playerUuid);
-                            client.send(
-                                new JoinRequireUserResponseMessage(data.playerUuid, PLAYER_PREFIX + key).asJSON()
-                            );
-                            logger("key for player %s: %s", data.playerUuid, key);
-                        } else if (!(await bot.inCategoryChannel(categoryId, userId))) {
-                            client.send(new JoinRequireUserResponseMessage(data.playerUuid).asJSON());
-                            logger("user needs to be in discord channel");
-                        } else {
-                            await bot.move(categoryId, userId, data.regionName);
-                            await bot.deafen(categoryId, userId, false);
-                        }
-                    }
+
+                case "LeaveEvent": {
+                    const userId = await getUser(data.playerUuid);
+                    if (userId) await bot.kick(categoryId, userId);
                     break;
-                case "LeaveEvent":
-                    {
-                        if (!serverId) throw new Error("Not authenticated");
-                        const categoryId = await getCategory(serverId);
-                        if (!categoryId) throw new Error(`No category found for server (${serverId})`);
-                        const userId = await getUser(data.playerUuid);
-                        if (userId) await bot.kick(categoryId, userId);
-                    }
+                }
+
+                case "RegionMoveEvent": {
+                    const userId = await getUser(data.playerUuid);
+                    if (!userId) throw new Error("No user found");
+                    await bot.move(categoryId, userId, data.regionName ?? "Global");
                     break;
-                case "RegionMoveEvent":
-                    {
-                        if (!serverId) throw new Error("Not authenticated");
-                        const categoryId = await getCategory(serverId);
-                        if (!categoryId) throw new Error(`No category found for server (${serverId})`);
-                        const userId = await getUser(data.playerUuid);
-                        if (!userId) throw new Error("No user found");
-                        await bot.move(categoryId, userId, data.regionName ?? "Global");
-                    }
+                }
+
+                case "DeathEvent": {
+                    const userId = await getUser(data.playerUuid);
+                    if (userId) await bot.mute(categoryId, userId, true);
                     break;
-                case "DeathEvent":
-                    {
-                        if (!serverId) throw new Error("Not authenticated");
-                        const categoryId = await getCategory(serverId);
-                        if (!categoryId) throw new Error(`No category found for server (${serverId})`);
-                        const userId = await getUser(data.playerUuid);
-                        if (userId) await bot.mute(categoryId, userId, true);
-                    }
+                }
+
+                case "RespawnEvent": {
+                    const userId = await getUser(data.playerUuid);
+                    if (userId) await bot.mute(categoryId, userId, false);
                     break;
-                case "RespawnEvent":
-                    {
-                        if (!serverId) throw new Error("Not authenticated");
-                        const categoryId = await getCategory(serverId);
-                        if (!categoryId) throw new Error(`No category found for server (${serverId})`);
-                        const userId = await getUser(data.playerUuid);
-                        if (userId) await bot.mute(categoryId, userId, false);
-                    }
+                }
+
+                case "LimitRequest": {
+                    await bot.limit(categoryId, data.regionName, data.limit);
                     break;
-                case "LimitRequest":
-                    {
-                        if (!serverId) throw new Error("Not authenticated");
-                        const categoryId = await getCategory(serverId);
-                        if (!categoryId) throw new Error(`No category found for server (${serverId})`);
-                        await bot.limit(categoryId, data.regionName, data.limit);
-                    }
-                    break;
-                case "UnBindRequest":
-                    {
-                        const userId = await getUser(data.playerUuid);
-                        if (!userId) return;
-                        deletePlayer(data.playerUuid);
-                        deleteUser(userId);
-                        if (serverId) {
-                            const categoryId = await getCategory(serverId);
-                            if (categoryId) await bot.kick(categoryId, userId);
-                        }
-                    }
-                    break;
-                default:
+                }
+
+                // case "UnBindRequest": {
+                //     const userId = await getUser(data.playerUuid);
+                //     if (!userId) return;
+                //     deletePlayer(data.playerUuid);
+                //     deleteUser(userId);
+                //     if (serverId) {
+                //         const categoryId = await getCategory(serverId);
+                //         if (categoryId) await bot.kick(categoryId, userId);
+                //     }
+                //     break;
+                // }
+
+                default: {
                     clientLogger(`received unhandled action`, data);
                     break;
+                }
             }
         } catch (ex) {
             clientLogger(`could not execute action %o: %s`, data, ex);

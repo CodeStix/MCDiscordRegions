@@ -16,8 +16,6 @@ import org.java_websocket.exceptions.WebsocketNotConnectedException;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents {
@@ -29,6 +27,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     public StringFlag discordChannelFlag = new StringFlag("discord-channel");
     public String serverId;
     public String globalRegionName;
+    public int reconnectIntervalTicks = 20 * 8;
 
     public static final String CONFIG_HOST = "host";
     public static final String CONFIG_ID = "id";
@@ -42,6 +41,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     public static MCDiscordRegionsPlugin getInstance() {
         return instance;
     }
+
+    private Integer reconnectTask = null;
 
     public String getRegionName(ProtectedRegion region) {
         if (region == null) {
@@ -185,5 +186,22 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
         String realRegionName = getRegionName(WorldGuardHandler.getPlayerRegion(player));
         connection.playerJoin(player.getUniqueId(), realRegionName);
+    }
+
+    @Override
+    public void onDisconnect() {
+        if (reconnectTask == null) {
+            getLogger().warning("Connection lost with Discord bot. Reconnecting...");
+            reconnectTask = Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () -> connection.reconnect(), 20, reconnectIntervalTicks);
+        }
+    }
+
+    @Override
+    public void onConnect() {
+        if (reconnectTask != null) {
+            Bukkit.getScheduler().cancelTask(reconnectTask);
+            reconnectTask = null;
+        }
+        getLogger().info("Connected to Discord bot.");
     }
 }

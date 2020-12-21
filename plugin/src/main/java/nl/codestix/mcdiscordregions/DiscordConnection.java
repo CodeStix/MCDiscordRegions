@@ -12,6 +12,7 @@ public interface DiscordConnection {
     void pruneRegions();
     boolean limitRegion(String regionName, int limit);
     void close();
+    void reconnect();
     Region getOrCreateRegion(String regionName);
     Collection<Region> getRegions();
 }

@@ -7,4 +7,6 @@ public interface DiscordEvents {
     void userJoined(UUID uuid, String regionName);
     void userRequired(UUID uuid, String userBindKey);
     void userBound(UUID uuid);
+    void onDisconnect();
+    void onConnect();
 }

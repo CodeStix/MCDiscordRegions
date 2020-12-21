@@ -19,13 +19,16 @@ const client = new RedisClient({
 const getAsync = util.promisify(client.get).bind(client);
 const incrAsync = util.promisify(client.incr).bind(client);
 
+const RATE_LIMIT_SECONDS = 60;
+const RATE_LIMIT_MAX = 60 * 8;
+
 export async function rateLimit(ip: string): Promise<boolean> {
     let i = await incrAsync(`ratelimit:${ip}`);
     if (i <= 1) {
-        client.expire(`ratelimit:${ip}`, 60 * 15);
+        client.expire(`ratelimit:${ip}`, RATE_LIMIT_SECONDS);
         return false;
     } else {
-        return i >= 60 * 15 * 8;
+        return i >= RATE_LIMIT_MAX;
     }
 }
 

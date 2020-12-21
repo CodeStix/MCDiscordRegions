@@ -9,7 +9,6 @@ import { debug } from "debug";
 // user: a Discord user
 
 const logger = debug("mcdr:redis");
-logger("connecting to redis...");
 
 const client = new RedisClient({
     host: process.env.REDIS_HOST,
@@ -106,3 +105,5 @@ export async function revokePlayerBind(key: string): Promise<string | null> {
         return null;
     }
 }
+
+logger("set up redis connection");

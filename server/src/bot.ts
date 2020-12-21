@@ -42,6 +42,8 @@ export class MinecraftRegionsBot {
     public onUserLeaveChannel: (serverId: string, channel: VoiceChannel, userId: string) => void = () => {};
     public onUserJoinChannel: (serverId: string, channel: VoiceChannel, userId: string) => void = () => {};
     public onUserBound: (serverId: string, categoryId: string, userId: string, playerUuid: string) => void = () => {};
+    public onConnected: () => void = () => {};
+
     private discord: DiscordBot;
 
     constructor(token: string) {
@@ -58,6 +60,7 @@ export class MinecraftRegionsBot {
 
     private connectHandler() {
         logger("connected to Discord");
+        this.onConnected();
     }
 
     private async handleVoiceStateUpdate(state: VoiceState, newState: VoiceState) {

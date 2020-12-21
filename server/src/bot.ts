@@ -152,37 +152,40 @@ export class MinecraftRegionsBot {
     }
 
     private createErrorMessage(message: string) {
-        return new MessageEmbed().setColor(16711680).setTitle("❌ Whoops!").setDescription(message);
+        return new MessageEmbed().setColor(16711680).setTitle("❌ Error").setDescription(message);
     }
 
     private createSuccessMessage(message: string) {
         return new MessageEmbed().setColor(65280).setTitle("✅ Success!").setDescription(message);
     }
 
+    private createWarningMessage(message: string) {
+        return new MessageEmbed()
+            .setColor(255 * 256 * 256 + 252 * 256 + 22)
+            .setTitle("⚠️ Warning")
+            .setDescription(message);
+    }
+
     private async handleMessage(message: Message) {
         if (!message.content.startsWith(PLAYER_PREFIX)) return;
         let userId = message.author.id;
 
-        if (message.channel.type !== "text" || !message.channel.parentID) {
+        // Get category and Minecraft server id for the text-channel this message was sent in
+        let categoryId, serverId;
+        if (
+            message.channel.type !== "text" ||
+            !(categoryId = message.channel.parentID) ||
+            !(serverId = await getServer(categoryId))
+        ) {
             message.channel.send(
                 this.createErrorMessage(
-                    `This channel is not connected to a Minecraft server, please use the #${PLAYER_REGISTER_CHANNEL} channel.`
+                    `This channel is not connected to a Minecraft server,\nplease use the **#${PLAYER_REGISTER_CHANNEL}** channel.`
                 )
             );
             return;
         }
 
-        const categoryId = message.channel.parentID;
-        const serverId = await getServer(categoryId);
-        if (!serverId) {
-            message.channel.send(
-                this.createErrorMessage(
-                    `This channel is not connected to a Minecraft server, please use the #${PLAYER_REGISTER_CHANNEL} channel.`
-                )
-            );
-            return;
-        }
-
+        // Check if a command is sent instead of a bind key, and if so, execute it
         let key = message.content.substring(PLAYER_PREFIX.length).trim();
         if (key === "remove") {
             deletePlayer((await getPlayer(userId))!);
@@ -192,14 +195,31 @@ export class MinecraftRegionsBot {
             );
             if (await this.inCategoryChannel(categoryId, userId)) await this.kick(categoryId, userId);
             return;
+        } else if (key === "help") {
+            message.channel.send("See here: https://github.com/CodeStix/MCDiscordRegions");
+            return;
         }
 
+        // Check if user is already connected to a Minecraft account
+        let connectedPlayerUuid = await getPlayer(userId);
+        if (connectedPlayerUuid) {
+            message.channel.send(
+                this.createWarningMessage(
+                    `Your Discord account is already connected to Minecraft account named **${await getIGN(
+                        connectedPlayerUuid
+                    )}**\nUse \`${PLAYER_PREFIX}remove\` to remove this connection.`
+                )
+            );
+            return;
+        }
+
+        // Revoke the bind code, create connection between Discords userId and Minecrafts uuid if successful
         let uuid = await revokePlayerBind(key);
         if (!uuid) {
             logger(`user ${userId} tried to revoke invalid key '${key}'`);
             message.channel.send(
                 this.createErrorMessage(
-                    `That is not a valid Minecraft code. You can receive a code when you join the Minecraft server. These codes are CaSe SeNsiTiVe.`
+                    `**That is not a valid Minecraft code.** You will receive a code when you join the Minecraft server. **These codes are CaSe SeNsiTiVe.**`
                 )
             );
         } else {
@@ -207,10 +227,13 @@ export class MinecraftRegionsBot {
             registerPlayer(uuid, userId);
             this.onUserBound(serverId, categoryId, userId, uuid);
 
-            let ign = await getIGN(uuid);
             message.channel.send(
                 this.createSuccessMessage(
-                    `${message.author.username}, your Discord account is now connected to your Minecraft account ${ign}!\nYou can remove this connection by typing ${PLAYER_PREFIX}remove`
+                    `${
+                        message.author.username
+                    }, your Discord account is now connected to your Minecraft account **${await getIGN(
+                        uuid
+                    )}!**\nYou can remove this connection by typing \`${PLAYER_PREFIX}remove\``
                 )
             );
 

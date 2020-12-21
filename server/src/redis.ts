@@ -20,6 +20,7 @@ const incrAsync = util.promisify(client.incr).bind(client);
 
 const RATE_LIMIT_SECONDS = 60;
 const RATE_LIMIT_MAX = 60 * 8;
+const BIND_KEY_EXPIRE = 60 * 15;
 
 export async function rateLimit(ip: string): Promise<boolean> {
     let i = await incrAsync(`ratelimit:${ip}`);
@@ -87,7 +88,7 @@ export function setLastRegion(categoryId: string, userId: string, region: string
  */
 export function createPlayerBind(forUuid: string): string {
     const key = nanoid(4);
-    client.setex(`playerbind:${key}`, 60 * 60, forUuid);
+    client.setex(`playerbind:${key}`, BIND_KEY_EXPIRE, forUuid);
     return key;
 }
 

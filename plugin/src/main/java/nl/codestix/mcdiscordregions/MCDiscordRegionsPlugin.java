@@ -45,13 +45,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
     private Integer reconnectTask = null;
 
-    public String getRegionName(ProtectedRegion region) {
-        if (region == null)
-            return null;
-        else
-            return region.getFlag(discordChannelFlag);
-    }
-
     @Override
     public void onLoad() {
         FlagRegistry reg = WorldGuard.getInstance().getFlagRegistry();
@@ -139,7 +132,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
 
         // User joined Discord channel, send the join message back, this will cause channel move and un-deafen
-        String realRegionName = getRegionName(WorldGuardHandler.getPlayerRegion(pl));
+        String realRegionName = WorldGuardHandler.queryFlag(pl, discordChannelFlag);
         connection.playerJoin(pl.getUniqueId(), realRegionName);
     }
 
@@ -175,7 +168,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
         player.sendMessage("§aAwesome, your Minecraft account is now connected to your Discord account. You only have to do this once for all servers that use this feature. Enjoy!");
 
-        String realRegionName = getRegionName(WorldGuardHandler.getPlayerRegion(player));
+        String realRegionName = WorldGuardHandler.queryFlag(player, discordChannelFlag);
         connection.playerJoin(player.getUniqueId(), realRegionName);
     }
 

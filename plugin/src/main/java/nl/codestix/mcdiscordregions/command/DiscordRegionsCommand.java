@@ -61,7 +61,7 @@ public class DiscordRegionsCommand implements CommandExecutor
                     regionName =  join(" ", 2, strings);
                 }
                 else if (commandSender instanceof Player) {
-                    regionName = plugin.getRegionName(WorldGuardHandler.getPlayerRegion((Player)commandSender));
+                    regionName = WorldGuardHandler.queryFlag((Player)commandSender, plugin.discordChannelFlag);
                     if (regionName == null) {
                         commandSender.sendMessage("§cCannot infer region to limit from your location, stand in a Discord region or use /drg limit <maxUsers> [regionName...]");
                         return true;

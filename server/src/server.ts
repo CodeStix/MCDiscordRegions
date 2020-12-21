@@ -160,7 +160,6 @@ export class WebSocketServer {
                             clientLogger("key for player %s: %s", data.playerUuid, key);
                         } else if (!(await this.bot.inCategoryChannel(categoryId, userId))) {
                             client.send(new JoinRequireUserResponseMessage(data.playerUuid).asJSON());
-                            clientLogger("user needs to be in discord channel");
                             if (!(await getLastRegion(categoryId, userId)))
                                 await this.bot.allowGlobalAccess(categoryId, userId);
                         } else {

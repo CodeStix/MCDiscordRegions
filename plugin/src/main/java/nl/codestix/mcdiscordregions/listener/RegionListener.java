@@ -1,9 +1,16 @@
 package nl.codestix.mcdiscordregions.listener;
 
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldguard.LocalPlayer;
+import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import nl.codestix.mcdiscordregions.MCDiscordRegionsPlugin;
 import nl.codestix.mcdiscordregions.Region;
+import nl.codestix.mcdiscordregions.WorldGuardHandler;
 import nl.codestix.mcdiscordregions.event.RegionChangeEvent;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
@@ -17,8 +24,9 @@ public class RegionListener implements Listener {
 
     @EventHandler
     public void onRegionChange(RegionChangeEvent event) {
-        String left = plugin.getRegionName(event.getLeftRegion());
-        String entered = plugin.getRegionName(event.getEnteredRegion());
+        Player pl = event.getPlayer();
+        String left = WorldGuardHandler.queryFlag(pl, WorldGuardHandler.getPlayerRegions(pl), plugin.discordChannelFlag);
+        String entered = WorldGuardHandler.queryFlag(pl, event.getRegionSet(), plugin.discordChannelFlag);
         if (entered == null || (left != null && left.equals(entered)))
             return;
 

@@ -16,14 +16,11 @@ public class RegionChangeEvent extends Event implements Cancellable {
 
     private UUID id;
     private Player player;
-    private ProtectedRegion leftRegion, enteredRegion;
     private ApplicableRegionSet regionSet;
 
-    public RegionChangeEvent(UUID id, Player player, ProtectedRegion leftRegion, ProtectedRegion enteredRegion, ApplicableRegionSet regionSet) {
+    public RegionChangeEvent(UUID id, Player player, ApplicableRegionSet regionSet) {
         this.id = id;
         this.player = player;
-        this.leftRegion = leftRegion;
-        this.enteredRegion = enteredRegion;
         this.regionSet = regionSet;
     }
 
@@ -52,14 +49,6 @@ public class RegionChangeEvent extends Event implements Cancellable {
 
     public Player getPlayer() {
         return player;
-    }
-
-    public ProtectedRegion getLeftRegion() {
-        return leftRegion;
-    }
-
-    public ProtectedRegion getEnteredRegion() {
-        return enteredRegion;
     }
 
     public ApplicableRegionSet getRegionSet() {

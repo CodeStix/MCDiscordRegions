@@ -38,7 +38,7 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        String regionName = plugin.getRegionName(WorldGuardHandler.getPlayerRegion(event.getPlayer()));
+        String regionName = WorldGuardHandler.queryFlag(event.getPlayer(), plugin.discordChannelFlag);
         plugin.connection.playerJoin(event.getPlayer().getUniqueId(), regionName);
     }
 }

@@ -1,5 +1,6 @@
 package nl.codestix.mcdiscordregions.event;
 
+import com.sk89q.worldguard.protection.ApplicableRegionSet;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
@@ -10,11 +11,11 @@ public class RegionInitializeEvent extends Event {
 
     private static final HandlerList handlers = new HandlerList();
     private Player player;
-    private ProtectedRegion initRegion;
+    private ApplicableRegionSet regionSet;
 
-    public RegionInitializeEvent(Player player, ProtectedRegion initRegion) {
+    public RegionInitializeEvent(Player player, ApplicableRegionSet regionSet) {
         this.player = player;
-        this.initRegion = initRegion;
+        this.regionSet = regionSet;
     }
 
     @Override
@@ -30,7 +31,7 @@ public class RegionInitializeEvent extends Event {
         return player;
     }
 
-    public ProtectedRegion getRegion() {
-        return initRegion;
+    public ApplicableRegionSet getRegionSet() {
+        return regionSet;
     }
 }

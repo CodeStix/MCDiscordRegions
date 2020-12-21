@@ -39,25 +39,15 @@ public class DiscordRegionsCommand implements CommandExecutor
 
         switch (strings.length > 0 ? strings[0] : "help")
         {
-            case "whitelist": {
-                if (strings.length >= 2) {
-                    plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_USE_WHITELIST, strings[1].equalsIgnoreCase("on"));
+            case "require": {
+                if (strings.length > 2)
+                    break;
+                if (strings.length == 2) {
+                    plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_REQUIRE_DISCORD, strings[1].equalsIgnoreCase("on"));
                     plugin.saveConfig();
                 }
-                commandSender.sendMessage("§dThe Discord-bound whitelist is " + (plugin.getConfig().getBoolean(MCDiscordRegionsPlugin.CONFIG_USE_WHITELIST, false) ? "on" : "off"));
-                return true;
-            }
-
-            case "kick": {
-                if (strings.length >= 2) {
-                    plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE, strings[1].equalsIgnoreCase("on"));
-                    if (strings.length >= 3) {
-                        plugin.getConfig().set(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE_MESSAGE, join(" ", 2, strings));
-                    }
-                    plugin.saveConfig();
-                }
-                commandSender.sendMessage("§dDiscord leave bound kicking is " + (plugin.getConfig().getBoolean(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE, false) ? "on" : "off"));
-                commandSender.sendMessage("§dKick message: " + plugin.getConfig().getString(MCDiscordRegionsPlugin.CONFIG_KICK_DISCORD_LEAVE_MESSAGE));
+                commandSender.sendMessage("§dRequired Discord voice connection is " + (plugin.getConfig().getBoolean(MCDiscordRegionsPlugin.CONFIG_REQUIRE_DISCORD, false) ? "§aenabled" : "§cdisabled"));
+                commandSender.sendMessage("§dEdit the kick/chat messages in the config.yml file of this plugin, then use /drg reload to load them.");
                 return true;
             }
 

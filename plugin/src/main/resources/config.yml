@@ -1,14 +1,19 @@
+# When true, the server kicks a player when its not in a Minecraft-related Discord channel.
+require-discord: true
 
-# Do not modify these if you don't know what they mean
-id: null
-host: ws://mcdr.codestix.nl
-
-# When true, you are forcing players to join your Discord channels. When players enter the Discord channel, they will be allowed into the Minecraft server.
-use-whitelist: false
-
-# When true, kicks the player when he/she leaves the Minecraft-related Discord channels.
-kick-on-discord-leave: true
-kick-on-discord-leave-message: Not registered.
+# Language strings, %s will be replaced with a bind key and should not be omitted (only for register-messages).
+require-discord-leave-message: §eYou left the Discord channel.
+require-discord-register-message: "§eThis server requires you to join their Discord Minecraft channels before joining. Connect your Minecraft account to Discord by entering the following code in the #minecraft-bind channel (case sensitive): §f%s"
+require-discord-join-message: §eThis server requires you to join their Discord Minecraft voice channels before joining.
+has-discord-register-message: "§eThis server makes use of Discord regions. If you want to connect your Minecraft account to Discord, enter the following code in any channel in the Discord of this Minecraft server (case sensitive): §f%s"
+has-discord-join-message: §eThis server makes use of Discord regions, join a Minecraft Discord voice channel to use this feature.
 
 # The name of the Discord channel when the player is in no region. (aka the global region)
 global-region-name: Global
+
+# The id of this server, will be filled in automatically.
+id: null
+
+# The Minecraft Discord regions server to use, default server (ws://mcdr.codestix.nl) is located in Amsterdam.
+host: ws://mcdr.codestix.nl
+

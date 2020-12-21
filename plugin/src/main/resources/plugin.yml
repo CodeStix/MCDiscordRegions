@@ -6,13 +6,10 @@ main: nl.codestix.mcdiscordregions.MCDiscordRegionsPlugin
 author: Stijn Rogiest
 depend: [WorldGuard]
 commands:
- nodiscord:
-   description: Remove the connection between Discord and Minecraft.
-   usage: /nodiscord
  dregion:
    aliases: [drg]
    description: Configure the MCDiscordRegions plugin.
-   usage: /dregion [whitelist [on|off] | kick [on|off] [kickMessage...] | limit <maxUsers> [channelName...] | prune | reload]
+   usage: /dregion [require [on|off] | limit <maxUsers> [channelName...] | prune | reload]
 
 permissions:
   discordregions.*:

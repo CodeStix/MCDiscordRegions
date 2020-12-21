@@ -32,9 +32,12 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     public static final String CONFIG_HOST = "host";
     public static final String CONFIG_ID = "id";
     public static final String CONFIG_GLOBAL_REGION = "global-region-name";
-    public static final String CONFIG_USE_WHITELIST = "use-whitelist";
-    public static final String CONFIG_KICK_DISCORD_LEAVE = "kick-on-discord-leave";
-    public static final String CONFIG_KICK_DISCORD_LEAVE_MESSAGE = "kick-on-discord-leave-message";
+    public static final String CONFIG_REQUIRE_DISCORD = "require-discord";
+    public static final String CONFIG_REQUIRE_DISCORD_LEAVE_MESSAGE = "require-discord-leave-message";
+    public static final String CONFIG_REQUIRE_DISCORD_REGISTER_MESSAGE = "require-discord-register-message";
+    public static final String CONFIG_REQUIRE_DISCORD_JOIN_MESSAGE = "require-discord-join-message";
+    public static final String CONFIG_HAS_DISCORD_REGISTER_MESSAGE = "has-discord-register-message";
+    public static final String CONFIG_HAS_DISCORD_JOIN_MESSAGE = "has-discord-join-message";
 
     private WorldGuardHandler.Factory worldGuardHandlerFactory;
     private static MCDiscordRegionsPlugin instance;
@@ -121,12 +124,12 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
     @Override
     public void userLeft(UUID uuid) {
-        if (getConfig().getBoolean(CONFIG_KICK_DISCORD_LEAVE)) {
+        if (getConfig().getBoolean(CONFIG_REQUIRE_DISCORD)) {
             Player player = getServer().getPlayer(uuid);
             if (player != null)
             {
                 // Kick player on main thread
-                getServer().getScheduler().scheduleSyncDelayedTask(this, () -> player.kickPlayer(getConfig().getString(CONFIG_KICK_DISCORD_LEAVE_MESSAGE)));
+                getServer().getScheduler().scheduleSyncDelayedTask(this, () -> player.kickPlayer(getConfig().getString(CONFIG_REQUIRE_DISCORD_LEAVE_MESSAGE)));
                 getLogger().info("Kicked player " + player.getName());
             }
         }
@@ -140,6 +143,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
         getLogger().info("Player " + pl.getName() + " joined discord channel " + regionName);
 
+
         // User joined Discord channel, send the join message back, this will cause channel move and un-deafen
         String realRegionName = getRegionName(WorldGuardHandler.getPlayerRegion(pl));
         connection.playerJoin(pl.getUniqueId(), realRegionName);
@@ -151,23 +155,16 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         if (player == null)
             return;
 
-        boolean required = getConfig().getBoolean(CONFIG_USE_WHITELIST);
+        boolean required = getConfig().getBoolean(CONFIG_REQUIRE_DISCORD);
 
         String message;
         if (userBindKey == null) {
             // User is already bound, just needs to be in a Discord channel
-            if (required)
-                message = "§eThis server requires you to join their Discord Minecraft channels before joining.";
-            else
-                message = "§eThis server makes use of Discord regions, join a Minecraft Regions Discord channel to use this feature.";
-
+            message = getConfig().getString(required ? CONFIG_REQUIRE_DISCORD_JOIN_MESSAGE : CONFIG_HAS_DISCORD_JOIN_MESSAGE);
         }
         else {
             // User is not yet bound to a Minecraft account
-            if (required)
-                message = String.format("This server requires you to join their Discord Minecraft channels before joining. Connect your Minecraft account to Discord by entering the following code in the #minecraft-bind channel (case sensitive): §f%s", userBindKey);
-            else
-                message = String.format("This server makes use of Discord regions. If you want to connect your Minecraft account to Discord, enter the following code in any channel in the Discord of this Minecraft server (case sensitive): §f%s", userBindKey);
+            message = String.format(getConfig().getString(required ? CONFIG_REQUIRE_DISCORD_REGISTER_MESSAGE: CONFIG_HAS_DISCORD_REGISTER_MESSAGE), userBindKey);
         }
 
         if (required)

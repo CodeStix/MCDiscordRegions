@@ -12,9 +12,9 @@ import {
     WebSocketMessage,
 } from "./messages";
 import { GLOBAL_CHANNEL, MinecraftRegionsBot, PLAYER_PREFIX } from "./bot";
-import { isThisTypeNode } from "typescript";
 import { IncomingMessage } from "http";
 import { VoiceChannel } from "discord.js";
+import http from "http";
 
 const logger = debug("mcdr:websocket-server");
 
@@ -23,18 +23,17 @@ export class WebSocketServer {
     private connections = new Map<string, WebSocket>();
     private bot: MinecraftRegionsBot;
 
-    constructor(bot: MinecraftRegionsBot, port: number) {
+    constructor(bot: MinecraftRegionsBot, server?: http.Server) {
         this.bot = bot;
         this.server = new WebSocket.Server({
-            port: port,
+            path: "/",
+            server,
         });
         this.server.once("listening", this.handleListening.bind(this));
         this.server.on("connection", this.handleConnection.bind(this));
         this.bot.onUserLeaveChannel = this.discordHandleUserLeaveChannel.bind(this);
         this.bot.onUserJoinChannel = this.discordHandleUserJoinChannel.bind(this);
         this.bot.onUserBound = this.discordHandleUserBound.bind(this);
-
-        logger("listening on port %d", port);
     }
 
     private async discordHandleUserLeaveChannel(serverId: string, channel: VoiceChannel, userId: string) {

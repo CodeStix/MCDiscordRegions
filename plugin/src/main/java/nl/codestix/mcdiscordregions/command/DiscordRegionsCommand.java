@@ -72,8 +72,8 @@ public class DiscordRegionsCommand implements CommandExecutor
                     return true;
                 }
 
-                if (limit < 0 || limit > 100) {
-                    commandSender.sendMessage("§cUser limit should be in range 0-100, 0 meaning no limit.");
+                if (limit < 0 || limit > 99) {
+                    commandSender.sendMessage("§cUser limit should be in range 0-99, 0 meaning no limit.");
                 }
                 else if (plugin.discordConnection.limitRegion(regionName, limit)) {
                     commandSender.sendMessage("§dSet the limit for " + regionName + " to " + limit);

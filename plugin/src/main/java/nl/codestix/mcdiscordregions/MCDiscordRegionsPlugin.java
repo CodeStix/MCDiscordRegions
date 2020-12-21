@@ -26,12 +26,10 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     public DiscordRegionsCommand command;
     public StringFlag discordChannelFlag = new StringFlag("discord-channel");
     public String serverId;
-    public String globalRegionName;
     public int reconnectIntervalTicks = 20 * 8;
 
     public static final String CONFIG_HOST = "host";
     public static final String CONFIG_ID = "id";
-    public static final String CONFIG_GLOBAL_REGION = "global-region-name";
     public static final String CONFIG_REQUIRE_DISCORD = "require-discord";
     public static final String CONFIG_REQUIRE_DISCORD_LEAVE_MESSAGE = "require-discord-leave-message";
     public static final String CONFIG_REQUIRE_DISCORD_REGISTER_MESSAGE = "require-discord-register-message";
@@ -48,13 +46,10 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
     private Integer reconnectTask = null;
 
     public String getRegionName(ProtectedRegion region) {
-        if (region == null) {
-            return globalRegionName;
-        }
-        else {
-            String flag = region.getFlag(discordChannelFlag);
-            return flag == null ? globalRegionName : flag;
-        }
+        if (region == null)
+            return null;
+        else
+            return region.getFlag(discordChannelFlag);
     }
 
     @Override
@@ -100,7 +95,6 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         WorldGuard.getInstance().getPlatform().getSessionManager().registerHandler(worldGuardHandlerFactory, null);
 
         // Configure event listeners
-        globalRegionName = getConfig().getString(CONFIG_GLOBAL_REGION, "Global");
         regionListener = new RegionListener(this);
         Bukkit.getPluginManager().registerEvents(regionListener, this);
         playerListener = new PlayerListener(this);

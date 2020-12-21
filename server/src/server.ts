@@ -11,7 +11,7 @@ import {
     SyncResponseMessage,
     WebSocketMessage,
 } from "./messages";
-import { MinecraftRegionsBot, PLAYER_PREFIX } from "./bot";
+import { GLOBAL_CHANNEL, MinecraftRegionsBot, PLAYER_PREFIX } from "./bot";
 import { isThisTypeNode } from "typescript";
 import { IncomingMessage } from "http";
 import { VoiceChannel } from "discord.js";
@@ -164,7 +164,9 @@ export class WebSocketServer {
                             if (!(await getLastRegion(categoryId, userId)))
                                 await this.bot.allowGlobalAccess(categoryId, userId);
                         } else {
-                            await this.bot.move(categoryId, userId, data.regionName);
+                            let channel = data.regionName ?? GLOBAL_CHANNEL;
+                            setLastRegion(categoryId, userId, channel);
+                            await this.bot.move(categoryId, userId, channel);
                             await this.bot.deafen(categoryId, userId, false);
                         }
                         break;
@@ -179,7 +181,7 @@ export class WebSocketServer {
                     case "RegionMoveEvent": {
                         const userId = await getUser(data.playerUuid);
                         if (!userId) throw new Error("No user found");
-                        let channel = data.regionName ?? "Global";
+                        let channel = data.regionName ?? GLOBAL_CHANNEL;
                         setLastRegion(categoryId, userId, channel);
                         await this.bot.move(categoryId, userId, channel);
                         break;

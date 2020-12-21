@@ -23,22 +23,22 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onDeath(PlayerDeathEvent event) {
-        plugin.connection.playerDeath(event.getEntity().getUniqueId());
+        plugin.discordConnection.playerDeath(event.getEntity().getUniqueId());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        plugin.connection.playerLeave(event.getPlayer().getUniqueId());
+        plugin.discordConnection.playerLeave(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
-        plugin.connection.playerRespawn(event.getPlayer().getUniqueId());
+        plugin.discordConnection.playerRespawn(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         String regionName = WorldGuardHandler.queryFlag(event.getPlayer(), plugin.discordChannelFlag);
-        plugin.connection.playerJoin(event.getPlayer().getUniqueId(), regionName);
+        plugin.discordConnection.playerJoin(event.getPlayer().getUniqueId(), regionName);
     }
 }

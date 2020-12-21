@@ -75,7 +75,7 @@ public class DiscordRegionsCommand implements CommandExecutor
                 if (limit < 0 || limit > 100) {
                     commandSender.sendMessage("§cUser limit should be in range 0-100, 0 meaning no limit.");
                 }
-                else if (plugin.connection.limitRegion(regionName, limit)) {
+                else if (plugin.discordConnection.limitRegion(regionName, limit)) {
                     commandSender.sendMessage("§dSet the limit for " + regionName + " to " + limit);
                 }
                 else {
@@ -87,15 +87,15 @@ public class DiscordRegionsCommand implements CommandExecutor
             case "prune": {
                 if (strings.length != 1)
                     break;
-                commandSender.sendMessage("§cRemoved " + plugin.connection.getRegions().size() + " Discord channels");
-                plugin.connection.pruneRegions();
+                commandSender.sendMessage("§cRemoved " + plugin.discordConnection.getRegions().size() + " Discord channels");
+                plugin.discordConnection.pruneRegions();
                 return true;
             }
 
             case "debug": {
                 if (strings.length != 1)
                     break;
-                Collection<Region> regions = plugin.connection.getRegions();
+                Collection<Region> regions = plugin.discordConnection.getRegions();
                 for(Region region : regions) {
                     commandSender.sendMessage(String.format("§dRegion %s (limit=%d)", region.name, region.limit));
                     for(String uuid : region.playerUuids) {

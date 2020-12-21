@@ -4,7 +4,6 @@ import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.protection.flags.Flag;
 import com.sk89q.worldguard.protection.flags.StringFlag;
 import com.sk89q.worldguard.protection.flags.registry.FlagRegistry;
-import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 import nl.codestix.mcdiscordregions.command.DiscordRegionsCommand;
 import nl.codestix.mcdiscordregions.listener.PlayerListener;
 import nl.codestix.mcdiscordregions.listener.RegionListener;
@@ -22,7 +21,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
     public RegionListener regionListener;
     public PlayerListener playerListener;
-    public DiscordConnection connection;
+    public DiscordConnection discordConnection;
     public DiscordRegionsCommand command;
     public StringFlag discordChannelFlag = new StringFlag("discord-channel");
     public String serverId;
@@ -70,7 +69,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         String host = getConfig().getString(CONFIG_HOST, "ws://localhost:8080");
         getLogger().info("Connecting to Discord Regions bot at " + host);
         try {
-            connection = new WebSocketConnection(new URI(host), this, serverId);
+            discordConnection = new WebSocketConnection(new URI(host), this, serverId);
         } catch (URISyntaxException e) {
             getLogger().severe("Could not connect to Discord bot, invalid host: " + host);
             getPluginLoader().disablePlugin(this);
@@ -103,8 +102,8 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
     @Override
     public void onDisable() {
-        if (connection != null)
-            connection.close();
+        if (discordConnection != null)
+            discordConnection.close();
         saveConfig();
         WorldGuard.getInstance().getPlatform().getSessionManager().unregisterHandler(worldGuardHandlerFactory);
     }
@@ -133,7 +132,7 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
 
         // User joined Discord channel, send the join message back, this will cause channel move and un-deafen
         String realRegionName = WorldGuardHandler.queryFlag(pl, discordChannelFlag);
-        connection.playerJoin(pl.getUniqueId(), realRegionName);
+        discordConnection.playerJoin(pl.getUniqueId(), realRegionName);
     }
 
     @Override
@@ -169,14 +168,14 @@ public class MCDiscordRegionsPlugin extends JavaPlugin implements DiscordEvents 
         player.sendMessage("§aAwesome, your Minecraft account is now connected to your Discord account. You only have to do this once for all servers that use this feature. Enjoy!");
 
         String realRegionName = WorldGuardHandler.queryFlag(player, discordChannelFlag);
-        connection.playerJoin(player.getUniqueId(), realRegionName);
+        discordConnection.playerJoin(player.getUniqueId(), realRegionName);
     }
 
     @Override
     public void onDisconnect() {
         if (reconnectTask == null) {
             getLogger().warning("Connection lost with Discord bot. Reconnecting...");
-            reconnectTask = Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () -> connection.reconnect(), 20, reconnectIntervalTicks);
+            reconnectTask = Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () -> discordConnection.reconnect(), 20, reconnectIntervalTicks);
         }
     }
 

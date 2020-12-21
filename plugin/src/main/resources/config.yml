@@ -12,5 +12,5 @@ has-discord-join-message: §eThis server makes use of Discord regions, join a Mi
 id: null
 
 # The Minecraft Discord regions server to use, default server (ws://mcdr.codestix.nl) is located in Amsterdam.
-host: ws://mcdr.codestix.nl
+host: wss://mcdr.codestix.nl
 

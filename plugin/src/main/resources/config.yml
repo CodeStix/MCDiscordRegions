@@ -5,7 +5,7 @@ require-discord: true
 require-discord-leave-message: §eYou left the Discord channel.
 require-discord-register-message: "§eThis server requires you to join their Discord Minecraft channels before joining. Connect your Minecraft account to Discord by entering the following code in the #minecraft-bind channel (case sensitive): §f%s"
 require-discord-join-message: §eThis server requires you to join their Discord Minecraft voice channels before joining.
-has-discord-register-message: "§eThis server makes use of Discord regions. If you want to connect your Minecraft account to Discord, enter the following code in any channel in the Discord of this Minecraft server (case sensitive): §f%s"
+has-discord-register-message: "§eThis server makes use of Discord regions. Enter the following code in the §f#minecraft-bind§e channel in the Discord server of this Minecraft server (case sensitive): §f%s"
 has-discord-join-message: §eThis server makes use of Discord regions, join a Minecraft Discord voice channel to use this feature.
 
 # The name of the Discord channel when the player is in no region. (aka the global region)

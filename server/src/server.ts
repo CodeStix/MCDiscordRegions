@@ -64,7 +64,7 @@ export class WebSocketServer {
         let connection = this.getConnection(serverId);
         if (!connection) return;
 
-        await this.bot.deafen(categoryId, userId, true);
+        if (await this.bot.inCategoryChannel(categoryId, userId)) await this.bot.deafen(categoryId, userId, true);
 
         connection.send(new BoundEventMessage(uuid).asJSON());
     }

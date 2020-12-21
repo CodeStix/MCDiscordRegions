@@ -93,7 +93,6 @@ export class MinecraftRegionsBot {
     }
 
     private async overrideChannelAccess(channel: VoiceChannel, userId: string, allow: boolean) {
-        logger("overriding channel access for %s, user %s to %o", channel.name, userId, allow);
         if (allow) {
             await channel!.overwritePermissions([
                 ...channel!.permissionOverwrites.values(),
@@ -223,7 +222,6 @@ export class MinecraftRegionsBot {
                 )
             );
         } else {
-            logger(`registering player with uuid ${uuid} with userId ${userId}`);
             registerPlayer(uuid, userId);
             this.onUserBound(serverId, categoryId, userId, uuid);
 
@@ -396,6 +394,5 @@ export class MinecraftRegionsBot {
         if (!channel || channel.type !== "voice") throw new Error("limit: channel is not found");
 
         await channel.setUserLimit(userLimit);
-        logger("set limit for channel %s to %d", regionName, userLimit);
     }
 }

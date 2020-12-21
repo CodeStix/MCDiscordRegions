@@ -108,15 +108,18 @@ export class WebSocketServer {
                 return;
             }
 
+            // Check if authentication request
             if (data.action === "SyncRequest") {
-                if (serverId) {
-                    logger("server %s is authenticating for the second time.", serverId);
-                    this.connections.delete(serverId);
+                if (this.connections.has(data.serverId)) {
+                    clientLogger(
+                        "tried to authenticate as an already connected server %s, not authenticating",
+                        data.serverId
+                    );
+                    return;
                 }
                 serverId = data.serverId;
                 this.connections.set(serverId, client);
                 clientLogger("authenticated as %s", serverId);
-
                 const categoryId = await getCategory(serverId);
                 let regions: Region[] = [];
                 if (!categoryId) {
@@ -128,11 +131,10 @@ export class WebSocketServer {
                 return;
             }
 
-            if (!serverId) {
-                clientLogger("tried to execute action %s without auth", data.action);
-                return;
-            }
+            // Check if authenticated
+            if (!serverId) return;
 
+            // Check if server has category
             let categoryId = await getCategory(serverId);
             if (!categoryId) {
                 clientLogger(`no category found for Discord server ${serverId}`);
@@ -147,7 +149,7 @@ export class WebSocketServer {
                         break;
                     }
 
-                    // Fired when a player joined the minecraft server or if a player bound its Discord account
+                    // Fired when a player joined the minecraft server or if a player binds its Discord account
                     case "JoinEvent": {
                         const userId = await getUser(data.playerUuid);
                         if (!userId) {

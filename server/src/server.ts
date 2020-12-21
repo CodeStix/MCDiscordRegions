@@ -30,9 +30,9 @@ export class WebSocketServer {
         });
         this.server.once("listening", this.handleListening.bind(this));
         this.server.on("connection", this.handleConnection.bind(this));
-        this.bot.onUserLeaveChannel = this.discordHandleUserLeaveChannel;
-        this.bot.onUserJoinChannel = this.discordHandleUserJoinChannel;
-        this.bot.onUserBound = this.discordHandleUserBound;
+        this.bot.onUserLeaveChannel = this.discordHandleUserLeaveChannel.bind(this);
+        this.bot.onUserJoinChannel = this.discordHandleUserJoinChannel.bind(this);
+        this.bot.onUserBound = this.discordHandleUserBound.bind(this);
 
         logger("listening on port %d", port);
     }

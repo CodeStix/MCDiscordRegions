@@ -20,14 +20,12 @@ This Bukkit plugin allows you to connect your minecraft server to Discord. By en
 
 ## Command
 
-⚠️ There are a lot of missing configuration features at this moment. Feel free to contribute.
-
-`/dregion [whitelist [on|off] | kick [on|off] [kickMessage...] | limit <maxUsers> <channelName...>]`
+`/dregion [require [on|off] | limit <maxUsers> <channelName...> | reload]`
 or `/drg ...`
 
--   `whitelist [on|off]`: when on, Discord users will be added to the whitelist when they connect, and removed when they disconnect.
--   `kick`: when on, kicks the player when he/she leaves one of the Minecraft regions Discord channels. (with the specified message)
--   `limit <maxUsers> <channelName...>`: set the user limit on a Discord channel, if more than `maxUsers` players are in the Discord channel, no more players will be allowed in the Minecraft region and Discord channel.
+-   `require [on|off]`: when on, only users that are in Discord voice channels will be allowed on the server.
+-   `limit <maxUsers> [channelName...]`: set the user limit on a Discord channel, if more than `maxUsers` players are in the Discord channel, no more players will be allowed in the Minecraft region and Discord channel.
+-   `reload`: reload the `config.yml` file, which contains kick and join messages.
 
 ## Building
 

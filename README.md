@@ -1,7 +1,5 @@
 # MCDiscordRegions 1.x
 
-⚠️ **This is the (decentralized) standalone version (1.x) of MCDiscordRegions, every Minecraft server that wants to use this plugin needs to register a Discord bot. This is the right version for you if you want to host the bot yourself and want advanced control. But, if you don't want to take the time to set all of this up, you can use the centralized version of this plugin (`master2` branch), which is easy to setup, but has less advanced features**
-
 This bukkit plugin allows you to connect your minecraft server to Discord. By entering a region in your Minecraft world, this bot will place you in the appropriate Discord channel.
 
 ## Installation

@@ -1,6 +1,6 @@
-# MCDiscordRegions 1.x
+# MCDiscordRegions
 
-This bukkit plugin allows you to connect your minecraft server to Discord. By entering a region in your Minecraft world, this bot will place you in the appropriate Discord channel.
+This bukkit plugin allows you to connect your minecraft server to Discord. By entering a WorldGuard region in your Minecraft world, this bot will place you in the appropriate Discord channel.
 
 ## Installation
 
